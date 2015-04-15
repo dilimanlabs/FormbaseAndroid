@@ -1,0 +1,105 @@
+{
+ 	"type": "qGroup",
+ 	"level": 0,
+ 	"formName": "Form1",
+ 	"childList": [
+ 		{
+ 			"type": "qNumberField",
+ 			"typeName": "Number field",
+ 			"name": "Reference No.",
+ 			"level": 1,
+ 			"order": 1,
+ 			"elName": "q-number-field",
+ 			"ranged": false,
+ 			"minimum": 0,
+ 			"maximum": 100
+ 		},
+ 		{
+ 			"type": "qNumberField",
+ 			"typeName": "Number field",
+ 			"name": "Site Direction No.",
+ 			"level": 1,
+ 			"order": 2,
+ 			"elName": "q-number-field",
+ 			"ranged": false,
+ 			"minimum": 0,
+ 			"maximum": 100
+ 		},
+ 		{
+ 			"type": "qGroup",
+ 			"typeName": "Question group",
+ 			"name": "Project Details",
+ 			"childList": [
+ 				{
+ 					"type": "qTextField",
+ 					"typeName": "Basic Text Field",
+ 					"name": "Project",
+ 					"level": 2,
+ 					"order": 1,
+ 					"elName": "q-text-field"
+ 				},
+ 				{
+ 					"type": "qTextField",
+ 					"typeName": "Basic Text Field",
+ 					"name": "Location",
+ 					"level": 2,
+ 					"order": 2,
+ 					"elName": "q-text-field"
+ 				},
+ 				{
+ 					"type": "qTextField",
+ 					"typeName": "Basic Text Field",
+ 					"name": "Owner",
+ 					"level": 2,
+ 					"order": 3,
+ 					"elName": "q-text-field"
+ 				},
+ 				{
+ 					"type": "qDateField",
+ 					"typeName": "Date field",
+ 					"name": "Date",
+ 					"level": 2,
+ 					"order": 4,
+ 					"elName": "q-date-field"
+ 				},
+ 				{
+ 					"type": "qTextField",
+ 					"typeName": "Basic Text Field",
+ 					"name": "Attention",
+ 					"level": 2,
+ 					"order": 6,
+ 					"elName": "q-text-field"
+ 				},
+ 				{
+ 					"type": "qTextField",
+ 					"typeName": "Basic Text Field",
+ 					"name": "Company",
+ 					"level": 2,
+ 					"order": 6,
+ 					"elName": "q-text-field"
+ 				},
+ 				{
+ 					"type": "qGroup",
+ 					"typeName": "Question group",
+ 					"name": "You are hereby directed to do the following with No Cost and Time Implication to the on going project:",
+ 					"childList": [
+ 						{
+ 							"type": "qTextField",
+ 							"typeName": "Basic Text Field",
+ 							"name": "Direction",
+ 							"level": 3,
+ 							"order": 1,
+ 							"elName": "q-text-field"
+ 						}
+ 					],
+ 					"level": 2,
+ 					"order": 7,
+ 					"isRepeating": true
+ 				}
+ 			],
+ 			"level": 1,
+ 			"order": 3,
+ 			"isRepeating": false
+ 		}
+ 	]
+ }
