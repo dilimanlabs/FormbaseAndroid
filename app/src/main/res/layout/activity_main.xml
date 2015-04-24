@@ -18,6 +18,14 @@
             android:src="@drawable/ic_action_back"
             android:visibility="gone"
             />
+        <ImageView
+            android:id="@+id/captureImage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_action_camera"
+            android:layout_marginLeft="300dp"
+            android:visibility="gone"
+            />
 
     </android.support.v7.widget.Toolbar>
 
@@ -41,6 +49,14 @@
         android:visibility="gone"
         />
 
+    <com.dilimanlabs.formbase.views.FormView
+        android:id="@+id/formView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        />
+
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -52,6 +68,10 @@
             android:layout_height="wrap_content"
             android:visibility="gone"
             >
+            <TextView
+                android:id="@+id/formSubName"
+                android:layout_height="30dp"
+                android:layout_width="wrap_content"/>
         </LinearLayout>
 
     </ScrollView>
@@ -87,5 +107,29 @@
         </LinearLayout>
 
     </ScrollView>
+
+
+
+    <LinearLayout
+        android:id="@+id/formNameLayout"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        >
+
+        <EditText
+            android:id="@+id/formName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="20dp"
+            android:hint="Form Name"/>
+        <Button
+            android:id="@+id/submitName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Submit"/>
+
+    </LinearLayout>
 
 </LinearLayout>

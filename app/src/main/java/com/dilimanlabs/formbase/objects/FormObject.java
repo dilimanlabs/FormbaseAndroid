@@ -7,7 +7,52 @@ public class FormObject {
     String url;
     String created_by;
     String category;
+    String name;
     String content;
+    String date_created;
+    String previous_version;
+    String published;
+    String deleted;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDate_created() {
+        return date_created;
+    }
+
+    public void setDate_created(String date_created) {
+        this.date_created = date_created;
+    }
+
+    public String getPrevious_version() {
+        return previous_version;
+    }
+
+    public void setPrevious_version(String previous_version) {
+        this.previous_version = previous_version;
+    }
+
+    public String getPublished() {
+        return published;
+    }
+
+    public void setPublished(String published) {
+        this.published = published;
+    }
+
+    public String getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(String deleted) {
+        this.deleted = deleted;
+    }
 
     public String getUrl() {
         return url;

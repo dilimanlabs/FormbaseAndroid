@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DataCenter {
     public static boolean hasViews = false;
-    public static boolean hasAddedViews = false;
+    public static  String TOKEN = "";
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
 
     public static int generateViewId() {

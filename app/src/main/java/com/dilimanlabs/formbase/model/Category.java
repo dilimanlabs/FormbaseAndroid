@@ -61,16 +61,12 @@ public class Category extends Model {
         return new Select().from(Category.class).execute();
     }
 
-    public static Category getCategoryByName(String name){
-        return new Select().from(Category.class).where("Name = ?",name).executeSingle();
-    }
-
     public static Category getCategoryName(String name){
         return new Select().from(Category.class).where("Name = ?",name).executeSingle();
     }
 
-    public List<Forms> forms() {
-        return getMany(Forms.class, "Category");
+    public List<Answers> forms() {
+        return getMany(Answers.class, "Category");
     }
 
     public static int countTable(){
