@@ -100,6 +100,18 @@ public class Answers extends Model {
         answers.save();
     }
 
+    public synchronized static void insertAnswer(Form fo, String formName, String content){
+        Answers answers = new Answers();
+        answers.setCategory(fo.getCategory());
+        answers.setName(fo.getName());
+        answers.setSubName(formName);
+        answers.setContent(content);
+        answers.setState("draft");
+        answers.setCreated_by(fo.getCreated_by());
+        answers.setUrl(fo.getUrl());
+        answers.save();
+    }
+
     public static List<Answers> getAllForms(String category){
         return new Select().from(Answers.class).where("Category = ?", category).execute();
     }

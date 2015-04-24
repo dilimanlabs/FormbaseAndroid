@@ -37,10 +37,8 @@ import com.dilimanlabs.formbase.authentication.AccountGeneral;
 import com.dilimanlabs.formbase.model.Answers;
 import com.dilimanlabs.formbase.model.Category;
 import com.dilimanlabs.formbase.model.Form;
-import com.dilimanlabs.formbase.objects.CategoryObject;
 import com.dilimanlabs.formbase.objects.CategoryWrapper;
 import com.dilimanlabs.formbase.objects.Choices;
-import com.dilimanlabs.formbase.objects.FormObject;
 import com.dilimanlabs.formbase.objects.FormObjectWrapper;
 import com.dilimanlabs.formbase.objects.JsonAnswer;
 import com.dilimanlabs.formbase.objects.QuestionCheckList;
@@ -174,8 +172,6 @@ public class MainActivity extends ActionBarActivity {
 
     @Override
     public void onDestroy(){
-//        Log.e("Clear: ", "Database");
-//        this.deleteDatabase("TestActiveAndroid.db");
         super.onDestroy();
     }
 
@@ -1400,7 +1396,7 @@ public class MainActivity extends ActionBarActivity {
                     com.dilimanlabs.formbase.objects.Form newForm = createJSONFile(json);
                     jsonAnswer = gson.toJson(newForm);
                     Log.e("Form", gson.toJson(newForm));
-                    setAnswers(fo, formName, jsonAnswer);
+                    Answers.insertAnswer(fo, formName, jsonAnswer);
                 }
 
 
@@ -1632,113 +1628,6 @@ public class MainActivity extends ActionBarActivity {
 
 
 
-    protected Token tryLogin(String mUsername, String mPassword)
-    {
-        HttpURLConnection connection;
-        OutputStreamWriter request = null;
-
-        URL url = null;
-        String response = null;
-        String parameters = "username="+mUsername+"&password="+mPassword;
-
-        try
-        {
-            url = new URL("http://192.168.0.7/api-token-auth/");
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestMethod("POST");
-            request = new OutputStreamWriter(connection.getOutputStream());
-            request.write(parameters);
-            request.flush();
-            request.close();
-            String line = "";
-            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
-            BufferedReader reader = new BufferedReader(isr);
-            StringBuilder sb = new StringBuilder();
-            while ((line = reader.readLine()) != null)
-            {
-                sb.append(line + "\n");
-            }
-            response = sb.toString();
-            token = gson.fromJson(response, Token.class);
-            Log.e("Response: ", token.getToken());
-            isr.close();
-            reader.close();
-            connection.disconnect();
-            return token;
-
-        }
-        catch(MalformedURLException m){
-            Log.e("Malformed", m.getMessage());
-            return null;
-        }
-        catch(Exception e)
-        {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-    protected String getCategory()
-    {
-        HttpURLConnection connection;
-        OutputStreamWriter request = null;
-
-        URL url = null;
-        String response = null;
-
-        try
-        {
-            url = new URL("http://192.168.0.7/categories/?format=json");
-            connection = (HttpURLConnection) url.openConnection();
-            Log.e("token", token.getToken());
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("Authorization", "Token " + token.getToken().trim());
-            Log.e(" header", connection.getRequestProperties().get("Authorization").toString());
-
-            Log.e("response code","" + connection.getResponseCode());
-            String line = "";
-            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
-            BufferedReader reader = new BufferedReader(isr);
-            StringBuilder sb = new StringBuilder();
-            while ((line = reader.readLine()) != null)
-            {
-                sb.append(line + "\n");
-            }
-            response = sb.toString();
-            response = "{\"categoryObjectList\":"+response + "}";
-            Log.e("appended", response);
-            categoryWrapper = gson.fromJson(response, CategoryWrapper.class);
-            for(CategoryObject categoryObject : categoryWrapper.getCategoryObjectList()){
-                Category category = new Category();
-                Log.e("name", categoryObject.getName());
-                category.setName(categoryObject.getName());
-                category.setUrl(categoryObject.getUrl());
-                category.setCreated_by(categoryObject.getCreated_by());
-                category.setParent("");
-                category.save();
-            }
-            Log.e("Response", response);
-            isr.close();
-            reader.close();
-            connection.disconnect();
-            return response;
-
-        }
-        catch(MalformedURLException m){
-            Log.e("Malformed", m.getMessage());
-            return "[blank";
-        }
-        catch(IOException e)
-        {
-            e.printStackTrace();
-            return "[blank]";
-        }
-
-    }
-
     protected void sendAnswers(String form, String answer)
     {
         HttpURLConnection connection;
@@ -1852,53 +1741,6 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private class Login extends AsyncTask<String, Void, String> {
-        Token new_token=null;
-        @Override
-        protected String doInBackground(String... params) {
-            new_token = tryLogin(username.getText().toString(), password.getText().toString());
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            token=new_token;
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
-    private class GetCategories extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            if(Category.countTable() <= 0){
-                Log.e("Downloading Categories",".....");
-                getCategory();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            if (categories!="") {
-                categories_retrieved = true;
-            }
-            categories_retrieved = false;
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
     public boolean isAllFieldsValid(Map<String, EditText> editTextMap){
         for (Map.Entry<String, EditText> entry : editTextMap.entrySet())
         {
@@ -1942,128 +1784,13 @@ public class MainActivity extends ActionBarActivity {
                 .append(month).append("/").append(year).toString();
     }
 
-    protected String getForms()
-    {
-        HttpURLConnection connection;
-        OutputStreamWriter request = null;
-
-        URL url = null;
-        String response = null;
-
-        try
-        {
-            url = new URL("http://192.168.0.7/formbases/?format=json");
-            connection = (HttpURLConnection) url.openConnection();
-            Log.e("get Forms token", token.getToken());
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("Authorization", "Token " +token.getToken().trim());
-            Log.e(" header", connection.getRequestProperties().get("Authorization").toString());
-
-            Log.e("response code","" + connection.getResponseCode());
-            String line = "";
-            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
-            BufferedReader reader = new BufferedReader(isr);
-            StringBuilder sb = new StringBuilder();
-            while ((line = reader.readLine()) != null)
-            {
-                sb.append(line + "\n");
-            }
-            response = sb.toString();
-            response = "{\"formObjectList\":"+response + "}";
-            formObjectWrapper = gson.fromJson(response, FormObjectWrapper.class);
-            for(FormObject formObject : formObjectWrapper.getFormObjectList()){
-                Log.e("Form Content", formObject.getContent());
-                String cat=
-                formObject.getCategory();
-                if (cat==null){
-                    cat = "Uncategorized";
-                }
-
-                Form.insertData(formObject.getUrl(), formObject.getCreated_by(), cat, formObject.getContent(), formObject.getName());
-            }
-            Log.e("Response", response);
-            isr.close();
-            reader.close();
-            connection.disconnect();
-            return response;
-
-        }
-        catch(MalformedURLException m){
-            Log.e("Malformed", m.getMessage());
-            return "[blank";
-        }
-        catch(IOException e)
-        {
-            e.printStackTrace();
-            return "[blank]";
-        }
-
-    }
-
-    private class GetForms extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            if(Form.countTable() <= 0){
-                Log.e("Downloading Forms",".....");
-                getForms();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
 
     public void retrieveAllData(final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, final LinearLayout original){
-//        new Login().execute();
-//        for (int tries = 0; tries < 8; tries++) {
-//            try {
-//                Thread.sleep(500);                 //1000 milliseconds is one second.
-//            } catch (InterruptedException ex) {
-//                Thread.currentThread().interrupt();
-//            }
-//            if (token != null) {
-//
-//                Log.e("Login Successful", "");
-//                Log.e("Retrieving Categories", "");
-//                categories_retrieved = false;
-//                new GetCategories().execute();
-//                new GetForms().execute();
-//                break;
-//            }
-//            else{
-//                Log.e("Login Failed", "Failed");
-//            }
-//        }
-//        for (int tries = 0; tries < 5; tries++) {
-//            try {
-//                Thread.sleep(1000);                 //1000 milliseconds is one second.
-//            } catch (InterruptedException ex) {
-//                Thread.currentThread().interrupt();
-//            }
-//            if (!categories_retrieved) {
-//                break;
-//            }
-//        }
-//        if (categories_retrieved) {
-//            Log.e("Categories Retrieval Failed", "");
-//        }
+        Log.e("Categort Size", ""+Category.countTable());
         loginView.setVisibility(View.GONE);
         LinearLayout layoutCategories = (LinearLayout) categoryView.findViewById(R.id.layoutCategories);
         layoutCategories.removeAllViews();
         List<Category> categories = Category.getAllCategories();
-
-
         //check if there exists a form without category
         if(!Form.getAllFormsByCategory("Uncategorized").isEmpty()){
             Button button = new Button(MainActivity.this);
@@ -2152,7 +1879,6 @@ public class MainActivity extends ActionBarActivity {
             });
             layoutCategories.addView(button);
         }
-
         for (final Category category : categories) {
 
             Button button = new Button(MainActivity.this);
@@ -2245,18 +1971,6 @@ public class MainActivity extends ActionBarActivity {
             layoutCategories.addView(button);
         }
         categoryView.setVisibility(View.VISIBLE);
-    }
-
-    public void setAnswers(Form fo, String formName, String content){
-        Answers answers = new Answers();
-        answers.setCategory(fo.getCategory());
-        answers.setName(fo.getName());
-        answers.setSubName(formName);
-        answers.setContent(content);
-        answers.setState("draft");
-        answers.setCreated_by(fo.getCreated_by());
-        answers.setUrl(fo.getUrl());
-        answers.save();
     }
 
     public void updatePreviousButton(LinearLayout previous){

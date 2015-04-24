@@ -9,7 +9,6 @@ public class DataCenter {
     public static boolean hasViews = false;
     public static  String TOKEN = "";
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
-
     public static int generateViewId() {
         for (;;) {
             final int result = sNextGeneratedId.get();

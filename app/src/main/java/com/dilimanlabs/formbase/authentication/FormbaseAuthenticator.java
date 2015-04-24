@@ -83,4 +83,22 @@ public class FormbaseAuthenticator extends AbstractAccountAuthenticator {
     public Bundle hasFeatures(AccountAuthenticatorResponse response, Account account, String[] features) throws NetworkErrorException {
         return null;
     }
+
+    @Override
+    public Bundle getAccountRemovalAllowed(
+            AccountAuthenticatorResponse response, Account account)
+            throws NetworkErrorException {
+        Bundle result = super.getAccountRemovalAllowed(response, account);
+
+        if (result != null && result.containsKey(AccountManager.KEY_BOOLEAN_RESULT)
+                && !result.containsKey(AccountManager.KEY_INTENT)) {
+            final boolean removalAllowed = result.getBoolean(AccountManager.KEY_BOOLEAN_RESULT);
+
+            if (removalAllowed) {
+                mContext.deleteDatabase("TestActiveAndroid.db");
+            }
+        }
+
+        return result;
+    }
 }
