@@ -1,17 +1,1 @@
-{
-"categoryObjectList":
-[
-{
-url: "http://192.168.0.7/categories/2/",
-name: "Category B",
-created_by: "http://192.168.0.7/users/1/",
-parent: null
-},
-{
-url: "http://192.168.0.7/categories/1/",
-name: "category A",
-created_by: "http://192.168.0.7/users/1/",
-parent: null
-}
-]
-}
+

@@ -39,7 +39,7 @@
 
             <ImageButton
                 android:id="@+id/add_new"
-                android:layout_width="60dp"
+                android:layout_width="50dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
                 android:text="Login"
@@ -49,18 +49,7 @@
                 android:visibility="gone"
                 android:layout_margin="2dp"
                  />
-            <ImageButton
-                android:id="@+id/remove_new"
-                android:layout_width="60dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:text="Login"
-                android:background="@drawable/remove_new"
-                android:textColor="#ffffff"
-                android:textSize="20dp"
-                android:visibility="gone"
-                android:layout_margin="2dp"
-                />
+
         </LinearLayout>
 
 
@@ -87,6 +76,39 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 >
+            </LinearLayout>
+
+
+        </ScrollView>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/scrollViewRepeater"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/repeaterQuestions"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                >
+
+                <ImageButton
+                    android:id="@+id/remove_new"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_gravity="right"
+                    android:text="Login"
+                    android:background="@drawable/remove_new"
+                    android:textColor="#ffffff"
+                    android:textSize="20dp"
+                    android:visibility="gone"
+                    android:layout_margin="2dp"
+                    />
+
             </LinearLayout>
 
 

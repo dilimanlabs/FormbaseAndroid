@@ -12,19 +12,20 @@ public class Form {
     String type;
     double level;
     List<Object> childList;
-    List<Object> questionGroupRepeaterList;
+    List<Object> questionGroupRepeaterListInner;
+    List<Object> questionGroupRepeaterListOuter;
 
     public Form(){
         super();
     }
 
-    public Form(String formName, String description, String type, double level, List<Object> childList, List<Object> questionGroupRepeaterList){
+    public Form(String formName, String description, String type, double level, List<Object> childList, List<Object> questionGroupRepeaterListInner){
         this.formName = formName;
         this.description = description;
         this.type = type;
         this.level = level;
         this.childList = childList;
-        this.questionGroupRepeaterList = questionGroupRepeaterList;
+        this.questionGroupRepeaterListInner = questionGroupRepeaterListInner;
     }
 
     public String getFormName() {
@@ -67,12 +68,20 @@ public class Form {
         this.childList = childList;
     }
 
-    public List<Object> getQuestionGroupRepeaterList() {
-        return questionGroupRepeaterList;
+    public List<Object> getQuestionGroupRepeaterListInner() {
+        return questionGroupRepeaterListInner;
     }
 
-    public void setQuestionGroupRepeaterList(List<Object> questionGroupRepeaterList) {
-        this.questionGroupRepeaterList = questionGroupRepeaterList;
+    public void setQuestionGroupRepeaterListInner(List<Object> questionGroupRepeaterListInner) {
+        this.questionGroupRepeaterListInner = questionGroupRepeaterListInner;
+    }
+
+    public List<Object> getQuestionGroupRepeaterListOuter() {
+        return questionGroupRepeaterListOuter;
+    }
+
+    public void setQuestionGroupRepeaterListOuter(List<Object> questionGroupRepeaterListOuter) {
+        this.questionGroupRepeaterListOuter = questionGroupRepeaterListOuter;
     }
 
     //    @Override

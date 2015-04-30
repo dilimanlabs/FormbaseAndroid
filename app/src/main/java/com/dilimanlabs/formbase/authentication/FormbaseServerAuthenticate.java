@@ -45,15 +45,21 @@ public class FormbaseServerAuthenticate {
 
         try
         {
-            url = new URL("http://192.168.0.7/api-token-auth/");
+            url = new URL(DataCenter.GLOBAL_URL+"api-token-auth/");
             connection = (HttpURLConnection) url.openConnection();
             connection.setDoOutput(true);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.setRequestMethod("POST");
+
+
+
             request = new OutputStreamWriter(connection.getOutputStream());
             request.write(parameters);
             request.flush();
             request.close();
+
+            Log.e("Error", ""+connection.getResponseCode());
+
             String line = "";
             InputStreamReader isr = new InputStreamReader(connection.getInputStream());
             BufferedReader reader = new BufferedReader(isr);
@@ -77,6 +83,7 @@ public class FormbaseServerAuthenticate {
         }
         catch(Exception e)
         {
+            Log.e("Exception Error", "Login");
             e.printStackTrace();
             return null;
         }

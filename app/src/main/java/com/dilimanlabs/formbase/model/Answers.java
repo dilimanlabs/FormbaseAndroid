@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Created by user on 4/8/2015.
  */
-@Table(name = "Forms")
+@Table(name = "Answers")
 public class Answers extends Model {
 
     @Column(name = "URL")
@@ -28,11 +28,14 @@ public class Answers extends Model {
     @Column(name = "Name")
     public String name;
 
-    @Column(name = "SubName")
-    public String subName;
+    @Column(name = "Local_ID", unique = true, onUniqueConflict = Column.ConflictAction.REPLACE)
+    public String local_id;
 
     @Column(name = "State")
     public String state;
+
+    @Column(name = "Formbase")
+    public String formbase;
 
     public String getState() {
         return state;
@@ -42,12 +45,12 @@ public class Answers extends Model {
         this.state = state;
     }
 
-    public String getSubName() {
-        return subName;
+    public String getLocal_id() {
+        return local_id;
     }
 
-    public void setSubName(String subName) {
-        this.subName = subName;
+    public void setLocal_id(String local_id) {
+        this.local_id = local_id;
     }
 
     public String getUrl() {
@@ -90,13 +93,26 @@ public class Answers extends Model {
         this.name = name;
     }
 
-    public static Answers getFormBySubName(String name){
-        return new Select().from(Answers.class).where("SubName = ?", name).executeSingle();
+    public String getFormbase() {
+        return formbase;
     }
 
-    public static void updateAnswer(Answers answers, String jsonAnswer){
+    public void setFormbase(String formbase) {
+        this.formbase = formbase;
+    }
+
+    public static Answers getFormByLocal_ID(String name){
+        return new Select().from(Answers.class).where("Local_ID = ?", name).executeSingle();
+    }
+
+    public static Answers getAnswerByURL(String url){
+        return new Select().from(Answers.class).where("URL =?", url).executeSingle();
+    }
+
+    public static void updateAnswer(Answers answers, String jsonAnswer, String answer_url){
         answers.setState("submitted");
         answers.setContent(jsonAnswer);
+        answers.setUrl(answer_url);
         answers.save();
     }
 
@@ -104,11 +120,12 @@ public class Answers extends Model {
         Answers answers = new Answers();
         answers.setCategory(fo.getCategory());
         answers.setName(fo.getName());
-        answers.setSubName(formName);
+        answers.setLocal_id(formName);
         answers.setContent(content);
+        answers.setFormbase(fo.getUrl());
         answers.setState("draft");
         answers.setCreated_by(fo.getCreated_by());
-        answers.setUrl(fo.getUrl());
+        answers.setUrl(null);
         answers.save();
     }
 

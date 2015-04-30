@@ -61,6 +61,11 @@ public class Category extends Model {
         return new Select().from(Category.class).execute();
     }
 
+    public static String getCategoryNameByURL(String url){
+        Category category = new Select().from(Category.class).where("URL = ?", url).executeSingle();
+        return category.getName();
+    }
+
     public static Category getCategoryName(String name){
         return new Select().from(Category.class).where("Name = ?",name).executeSingle();
     }

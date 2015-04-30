@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.dilimanlabs.formbase.DataCenter;
 import com.dilimanlabs.formbase.R;
 import com.dilimanlabs.formbase.model.Category;
 import com.dilimanlabs.formbase.model.Form;
@@ -99,7 +100,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
                     data.putString(AccountManager.KEY_AUTHTOKEN, authtoken);
                     data.putString(PARAM_USER_PASS, userPass);
                 } catch (Exception e) {
-                    Log.e("Im", ""+authtoken);
+                    Log.e("Im login token", ""+authtoken);
                     e.printStackTrace();
                     data.putString(KEY_ERROR_MESSAGE, e.getMessage());
                 }
@@ -140,6 +141,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
         setAccountAuthenticatorResult(intent.getExtras());
         setResult(RESULT_OK, intent);
+        DataCenter.isLogin = true;
         finish();
     }
 
@@ -153,7 +155,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
         try
         {
-            url = new URL("http://192.168.0.7/formbases/?format=json");
+            url = new URL(DataCenter.GLOBAL_URL+"formbases/?format=json");
             connection = (HttpURLConnection) url.openConnection();
             Log.e("get Forms token", authtoken);
             connection.setRequestMethod("GET");
@@ -174,10 +176,14 @@ public class AuthenticatorActivity extends ActionBarActivity {
             formObjectWrapper = gson.fromJson(response, FormObjectWrapper.class);
             for(FormObject formObject : formObjectWrapper.getFormObjectList()){
                 Log.e("Form Content", formObject.getContent());
-                String cat=
+                String cat =
                         formObject.getCategory();
+                Log.e("Category", ""+cat);
                 if (cat==null){
                     cat = "Uncategorized";
+                }
+                else{
+                    cat = Category.getCategoryNameByURL(cat);
                 }
 
                 Form.insertData(formObject.getUrl(), formObject.getCreated_by(), cat, formObject.getContent(), formObject.getName());
@@ -262,7 +268,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
         try
         {
-            url = new URL("http://192.168.0.7/categories/?format=json");
+            url = new URL(DataCenter.GLOBAL_URL+"categories/?format=json");
             connection = (HttpURLConnection) url.openConnection();
             Log.e("token", authtoken);
             connection.setRequestMethod("GET");

@@ -5,22 +5,30 @@ package com.dilimanlabs.formbase.objects;
  */
 public class JsonAnswer {
 
-    String form;
-    String answer;
-    String created_by;
+    String url;
     String date_created;
     String date_modified;
-    String modified_by;
+    String answer;
     String state;
+    String created_by;
+    String formbase;
+    String modified_by;
 
 
-
-    public String getForm() {
-        return form;
+    public String getUrl() {
+        return url;
     }
 
-    public void setForm(String form) {
-        this.form = form;
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String getFormbase() {
+        return formbase;
+    }
+
+    public void setFormbase(String formbase) {
+        this.formbase = formbase;
     }
 
     public String getAnswer() {
