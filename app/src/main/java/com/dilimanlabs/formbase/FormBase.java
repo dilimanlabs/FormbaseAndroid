@@ -17,6 +17,7 @@ public class FormBase extends Application {
     public static boolean isSaved;
     public static boolean isCaptured;
     public static Deque<LinearLayout> viewDeque = new ArrayDeque<>();
+    public static Deque<String> labelDeque = new ArrayDeque<>();
     private static FormBase formbaseSingleton;
 
     @Override

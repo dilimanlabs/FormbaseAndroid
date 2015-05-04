@@ -162,6 +162,8 @@ public class MainActivity extends ActionBarActivity {
     private Account account;
     private ImageView capture;
     private FormBase formBase;
+    private Map<String ,List<Object>> repeatedInner;
+    private TextView label;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,9 +215,11 @@ public class MainActivity extends ActionBarActivity {
         file = new File(context.getExternalCacheDir(),"testJson.json");
         previousID = new ArrayList<>();
         current = new LinearLayout(this);
+        label = (TextView) toolbar.findViewById(R.id.label);
         previous = new LinearLayout(this);
         innerQuestionViewMap = new HashMap<>();
         innerQuestionViewsList = new ArrayList<>();
+        repeatedInner = new HashMap<>();
         handler = new Handler();
         copyQuestionsLayout = questionsLayout;
         loginView = (LoginView) findViewById(R.id.loginView);
@@ -251,6 +255,13 @@ public class MainActivity extends ActionBarActivity {
             DataCenter.questionsLayout = questionsLayout;
             DataCenter.currentPath = mCurrentPhotoPath;
 
+    }
+
+    @Override
+    public void onDestroy(){
+        Log.e("Destroy", "ondestroy");
+        super.onDestroy();
+        FormBase.isSaved = false;
     }
 
     @Override
@@ -296,11 +307,13 @@ public class MainActivity extends ActionBarActivity {
             LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
             if(map.get("typeName").equals(questionGroup)){
                 QuestionGroup questionGroup = new QuestionGroup();
+                List <Object> repeaterAnswer = null;
                 questionGroup.setType(map.get("type").toString());
                 questionGroup.setName(map.get("name").toString());
                 questionGroup.setTypeName(map.get("typeName").toString());
                 List<Object> objectListInner = new ArrayList<>();
                 List childList = (List)map.get("childList");
+                questionGroup.setChildList(childList);
                 Log.e("ChildList", ""+childList.size());
                 if(Boolean.parseBoolean(map.get("isRepeating").toString()) == true){
                     List<Object> repeatedInner = new ArrayList<>();
@@ -309,7 +322,6 @@ public class MainActivity extends ActionBarActivity {
                         Log.e("ID: ", ""+DataCenter.repeaterIdList.get(r).toString());
                         repeatedInner.add(insertRepeaterAnswersForOuter(DataCenter.questionListMap.get(DataCenter.repeaterIdList.get(r).toString()), DataCenter.repeaterIdList.get(r).toString()));
                     }
-                    formWithAnswer.setQuestionGroupRepeaterListOuter(repeatedInner);
                 }else{
                     for(int x = 0; x<childList.size(); x++){
                         final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
@@ -2155,7 +2167,6 @@ public class MainActivity extends ActionBarActivity {
         }
         for (final Category category : categories) {
 
-            Button button = new Button(MainActivity.this);
             button.setText(category.getName());
             DataCenter.buttonMap.put(button, category.getName());
             button.setOnClickListener(new View.OnClickListener() {
