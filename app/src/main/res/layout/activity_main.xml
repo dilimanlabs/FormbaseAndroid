@@ -1,4 +1,11 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:res-auto="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -16,6 +23,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_action_back"
+            android:padding="2dp"
             android:visibility="gone"
             />
 
@@ -24,6 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Categories"
+            android:padding="2dp"
             android:textSize="20dp"
             />
         <ImageView
@@ -31,6 +40,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|right"
+            android:padding="2dp"
             android:src="@drawable/ic_action_camera"
             android:visibility="gone"
             />
@@ -142,3 +152,4 @@
     </LinearLayout>
 
 </LinearLayout>
+</android.support.v4.widget.DrawerLayout>

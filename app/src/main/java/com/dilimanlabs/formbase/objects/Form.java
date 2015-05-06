@@ -7,7 +7,7 @@ import java.util.List;
  */
 public class Form {
 
-    String formName;
+    String name;
     String description;
     String type;
     double level;
@@ -20,7 +20,7 @@ public class Form {
     }
 
     public Form(String formName, String description, String type, double level, List<Object> childList, List<Object> questionGroupRepeaterListInner){
-        this.formName = formName;
+        this.name = formName;
         this.description = description;
         this.type = type;
         this.level = level;
@@ -29,11 +29,11 @@ public class Form {
     }
 
     public String getFormName() {
-        return formName;
+        return name;
     }
 
-    public void setFormName(String formName) {
-        this.formName = formName;
+    public void setFormName(String name) {
+        this.name = name;
     }
 
     public String getDescription() {

@@ -11,7 +11,7 @@ public class QuestionGroup {
     String typeName;
     String name;
     List<Object> childList;
-    List<Object> questionGroupRepeaterList;
+    List<QuestionRepeater> questionRepeaterList;
     double level;
     double order;
     boolean isRepeating;
@@ -95,12 +95,12 @@ public class QuestionGroup {
         this.answer = answer;
     }
 
-    public List<Object> getQuestionGroupRepeaterList() {
-        return questionGroupRepeaterList;
+    public List<QuestionRepeater> getQuestionGroupRepeater() {
+        return questionRepeaterList;
     }
 
-    public void setQuestionGroupRepeaterList(List<Object> questionGroupRepeaterList) {
-        this.questionGroupRepeaterList = questionGroupRepeaterList;
+    public void setQuestionGroupRepeaterList(List<QuestionRepeater> questionRepeaterList) {
+        this.questionRepeaterList = questionRepeaterList;
     }
 
     @Override

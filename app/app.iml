@@ -96,6 +96,7 @@
     <orderEntry type="library" exported="" name="okhttp-2.0.0" level="project" />
     <orderEntry type="library" exported="" name="retrofit-1.9.0" level="project" />
     <orderEntry type="library" exported="" name="ActiveAndroid-3.1-adcddac4c58" level="project" />
+    <orderEntry type="library" exported="" name="guava-18.0" level="project" />
   </component>
 </module>
 
