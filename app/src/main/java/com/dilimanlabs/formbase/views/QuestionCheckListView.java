@@ -12,7 +12,6 @@ import com.dilimanlabs.formbase.R;
  * Created by user on 3/2/2015.
  */
 public class QuestionCheckListView extends CardView {
-    private TextView mQuestionType;
     private TextView mQuestionName;
     private LinearLayout mQuestionChoices;
     private final int ID = 2;
@@ -34,7 +33,6 @@ public class QuestionCheckListView extends CardView {
 
     private void init(){
         inflate(getContext(), R.layout.view_checklist_question, this);
-        mQuestionType = (TextView) findViewById(R.id.questionType);
         mQuestionName = (TextView) findViewById(R.id.questionName);
         mQuestionChoices = (LinearLayout) findViewById(R.id.questionChoices);
     }

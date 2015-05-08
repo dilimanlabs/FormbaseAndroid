@@ -12,14 +12,21 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.activeandroid.ActiveAndroid;
 import com.dilimanlabs.formbase.DataCenter;
 import com.dilimanlabs.formbase.R;
+import com.dilimanlabs.formbase.model.Answers;
+import com.dilimanlabs.formbase.model.AnswersForApproval;
 import com.dilimanlabs.formbase.model.Category;
+import com.dilimanlabs.formbase.model.CurrentUser;
 import com.dilimanlabs.formbase.model.Form;
+import com.dilimanlabs.formbase.model.Photos;
 import com.dilimanlabs.formbase.objects.CategoryObject;
 import com.dilimanlabs.formbase.objects.CategoryWrapper;
+import com.dilimanlabs.formbase.objects.CurrentUserWrapper;
 import com.dilimanlabs.formbase.objects.FormObject;
 import com.dilimanlabs.formbase.objects.FormObjectWrapper;
+import com.dilimanlabs.formbase.objects.UserInfo;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
@@ -37,7 +44,6 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
     public final static String ARG_ACCOUNT_TYPE = "ACCOUNT_TYPE";
     public final static String ARG_AUTH_TYPE = "AUTH_TYPE";
-    public final static String ARG_ACCOUNT_NAME = "ACCOUNT_NAME";
     public final static String ARG_IS_ADDING_NEW_ACCOUNT = "IS_ADDING_ACCOUNT";
     public static final String KEY_ERROR_MESSAGE = "ERR_MSG";
     public final static String PARAM_USER_PASS = "USER_PASS";
@@ -53,6 +59,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
     private String categories;
     private boolean categories_retrieved;
     private CategoryWrapper categoryWrapper;
+    private CurrentUserWrapper currentUserWrapper;
     private FormObjectWrapper formObjectWrapper;
 
     @Override
@@ -72,10 +79,11 @@ public class AuthenticatorActivity extends ActionBarActivity {
         login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                login.setClickable(false);
+                clearData();
                 submit();
             }
         });
-
     }
 
     public final void setAccountAuthenticatorResult(Bundle result) {
@@ -94,7 +102,6 @@ public class AuthenticatorActivity extends ActionBarActivity {
                 Bundle data = new Bundle();
                 try {
                     authtoken =  new FormbaseServerAuthenticate().userSignIn(userName, userPass, mAuthTokenType);
-
                     data.putString(AccountManager.KEY_ACCOUNT_NAME, userName);
                     data.putString(AccountManager.KEY_ACCOUNT_TYPE, mAccountType);
                     data.putString(AccountManager.KEY_AUTHTOKEN, authtoken);
@@ -102,10 +109,14 @@ public class AuthenticatorActivity extends ActionBarActivity {
                 } catch (Exception e) {
                     Log.e("Im login token", ""+authtoken);
                     e.printStackTrace();
+                    Log.e("Connection Status", "Cant connect to server");
                     data.putString(KEY_ERROR_MESSAGE, e.getMessage());
                 }
-                getCategory();
-                getForms();
+                if(authtoken != null){
+                    getCurrentUserInfo();
+                    getCategory();
+                    getForms();
+                }
                 Log.e("done acquiring","");
                 final Intent res = new Intent();
                 res.putExtras(data);
@@ -192,6 +203,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
             isr.close();
             reader.close();
             connection.disconnect();
+            ActiveAndroid.getDatabase().close();
             return response;
 
         }
@@ -297,6 +309,100 @@ public class AuthenticatorActivity extends ActionBarActivity {
                 category.setParent("");
                 category.save();
             }
+            Log.e("Response", response);
+            isr.close();
+            reader.close();
+            connection.disconnect();
+            return response;
+
+        }
+        catch(MalformedURLException m){
+            Log.e("Malformed", m.getMessage());
+            return "[blank";
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+            return "[blank]";
+        }
+
+    }
+
+    public void clearData(){
+        Photos.deleteData();
+        Answers.deleteData();
+        AnswersForApproval.deleteData();
+        Form.deleteData();
+        Category.deleteData();
+        CurrentUser.deleteData();
+
+    }
+
+    private class ClearData extends AsyncTask<String, Void, String> {
+
+
+        @Override
+        protected String doInBackground(String... params) {
+            try{
+                clearData();
+            }
+            catch (Exception e){
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+        }
+    }
+
+    protected String getCurrentUserInfo()
+    {
+        HttpURLConnection connection;
+        OutputStreamWriter request = null;
+
+        URL url = null;
+        String response = null;
+
+        try
+        {
+            url = new URL(DataCenter.GLOBAL_URL+"users/?format=json");
+            connection = (HttpURLConnection) url.openConnection();
+            Log.e("token", authtoken);
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", "Token " + authtoken);
+            Log.e(" header", connection.getRequestProperties().get("Authorization").toString());
+            Log.e("Current User", ""+connection.getResponseCode());
+            String line = "";
+            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
+            BufferedReader reader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            while ((line = reader.readLine()) != null)
+            {
+                sb.append(line + "\n");
+            }
+            response = sb.toString();
+            response = "{\"userInfoList\":"+response + "}";
+            Log.e("Current User Response", response);
+            currentUserWrapper = gson.fromJson(response, CurrentUserWrapper.class);
+            Log.e("Current User Info", ""+currentUserWrapper.getUserInfoList().size());
+            for(UserInfo userInfo : currentUserWrapper.getUserInfoList()){
+                if(username.getText().toString().equals(userInfo.getUsername())){
+                    CurrentUser.insertCurrentUser(userInfo);
+                }
+            }
+            Log.e("appended", response);
             Log.e("Response", response);
             isr.close();
             reader.close();

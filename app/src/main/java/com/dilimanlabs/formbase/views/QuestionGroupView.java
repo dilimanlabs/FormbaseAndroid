@@ -12,7 +12,6 @@ import com.dilimanlabs.formbase.R;
  * Created by user on 3/2/2015.
  */
 public class QuestionGroupView extends CardView {
-    private TextView mQuestionType;
     private TextView mQuestionName;
     private LinearLayout mLinearLayout;
     private final int ID = 3;
@@ -34,7 +33,6 @@ public class QuestionGroupView extends CardView {
 
     private void init(){
         inflate(getContext(), R.layout.view_group_question, this);
-        mQuestionType = (TextView) findViewById(R.id.questionType);
         mQuestionName = (TextView) findViewById(R.id.questionName);
         mLinearLayout = (LinearLayout) findViewById(R.id.questions);
     }

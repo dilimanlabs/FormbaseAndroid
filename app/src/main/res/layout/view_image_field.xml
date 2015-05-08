@@ -14,22 +14,15 @@
         >
 
         <TextView
-            android:id="@+id/questionType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Image Field"
-            android:layout_marginTop="20dp"
-            android:padding="5dp"
-            />
-
-        <TextView
             android:id="@+id/questionName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Question Name"
+            android:textSize="20dp"
             android:layout_marginTop="20dp"
-            android:padding="10dp"
+            android:padding="5dp"
             />
+
         <LinearLayout
             android:id="@+id/image"
             android:orientation="vertical"

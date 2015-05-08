@@ -15,7 +15,6 @@ import java.util.Date;
  * Created by user on 3/23/2015.
  */
 public class QuestionDateFieldView extends CardView {
-    private TextView mQuestionType;
     private TextView mQuestionName;
     private TextView mDate;
     private int year;
@@ -44,7 +43,6 @@ public class QuestionDateFieldView extends CardView {
 
     private void init(){
         inflate(getContext(), R.layout.view_question_date_field, this);
-        mQuestionType = (TextView) findViewById(R.id.questionType);
         mQuestionName = (TextView) findViewById(R.id.questionName);
         mDate = (TextView) findViewById(R.id.date);
         mDate.setOnClickListener(new OnClickListener() {

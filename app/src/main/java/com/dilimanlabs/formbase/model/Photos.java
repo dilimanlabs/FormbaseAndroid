@@ -5,6 +5,7 @@ import android.util.Log;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
+import com.activeandroid.query.Delete;
 import com.activeandroid.query.Select;
 
 /**
@@ -62,5 +63,9 @@ public class Photos extends Model {
     public static String getPhotoPath(String answer_id){
         Photos photos = new Select().from(Photos.class).where("Answer_Id = ?", answer_id).executeSingle();
         return photos.getPath();
+    }
+
+    public static void deleteData(){
+        new Delete().from(Photos.class).execute();
     }
 }

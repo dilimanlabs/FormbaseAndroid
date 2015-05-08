@@ -24,6 +24,7 @@ public class FormBase extends Application {
     public void onCreate() {
         super.onCreate();
         ActiveAndroid.initialize(this);
+
         formbaseSingleton = this;
     }
 

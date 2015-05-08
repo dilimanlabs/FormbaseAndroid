@@ -12,7 +12,6 @@ import com.dilimanlabs.formbase.R;
  * Created by user on 3/2/2015.
  */
 public class QuestionNumberFieldView extends CardView {
-    private TextView mQuestionType;
     private TextView mQuestionName;
     private LinearLayout mQuestionAnswer;
     private final int ID = 6;
@@ -35,7 +34,6 @@ public class QuestionNumberFieldView extends CardView {
 
     private void init(){
         inflate(getContext(), R.layout.view_question_numberfield, this);
-        mQuestionType = (TextView) findViewById(R.id.questionType);
         mQuestionName = (TextView) findViewById(R.id.questionName);
         mQuestionAnswer = (LinearLayout) findViewById(R.id.questionAnswer);
     }

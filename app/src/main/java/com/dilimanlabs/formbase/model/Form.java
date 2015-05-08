@@ -5,6 +5,7 @@ import android.util.Log;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
+import com.activeandroid.query.Delete;
 import com.activeandroid.query.Select;
 
 import java.util.List;
@@ -129,5 +130,9 @@ public class Form extends Model {
 
     public static int countTable(){
         return new Select().from(Form.class).execute().size();
+    }
+
+    public static void deleteData(){
+        new Delete().from(Form.class).execute();
     }
 }

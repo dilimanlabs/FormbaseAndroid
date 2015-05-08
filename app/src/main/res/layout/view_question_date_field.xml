@@ -13,21 +13,13 @@
         >
 
         <TextView
-            android:id="@+id/questionType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Date Field"
-            android:layout_marginTop="20dp"
-            android:padding="5dp"
-            />
-
-        <TextView
             android:id="@+id/questionName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Date"
+            android:textSize="20dp"
             android:layout_marginTop="20dp"
-            android:padding="10dp"
+            android:padding="5dp"
             />
 
         <TextView
@@ -35,6 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
+            android:textSize="15dp"
             android:clickable="true"
             android:padding="10dp"/>
 

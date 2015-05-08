@@ -3,6 +3,7 @@ package com.dilimanlabs.formbase.model;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
+import com.activeandroid.query.Delete;
 import com.activeandroid.query.Select;
 
 import java.util.List;
@@ -129,7 +130,12 @@ public class Answers extends Model {
         answers.save();
     }
 
+
     public static List<Answers> getAllForms(String category){
         return new Select().from(Answers.class).where("Category = ?", category).execute();
+    }
+
+    public static void deleteData(){
+        new Delete().from(Answers.class).execute();
     }
 }

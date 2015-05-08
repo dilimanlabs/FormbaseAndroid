@@ -11,7 +11,6 @@ import com.dilimanlabs.formbase.R;
  * Created by user on 3/2/2015.
  */
 public class QuestionImageFieldView extends CardView {
-    private TextView mQuestionType;
     private TextView mQuestionName;
     private final int ID = 4;
 
@@ -33,7 +32,6 @@ public class QuestionImageFieldView extends CardView {
 
     private void init(){
         inflate(getContext(), R.layout.view_image_field, this);
-        mQuestionType = (TextView) findViewById(R.id.questionType);
         mQuestionName = (TextView) findViewById(R.id.questionName);
     }
 

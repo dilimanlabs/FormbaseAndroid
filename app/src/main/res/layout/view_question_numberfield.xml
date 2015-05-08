@@ -14,21 +14,13 @@
         >
 
         <TextView
-            android:id="@+id/questionType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Number Field"
-            android:layout_marginTop="20dp"
-            android:padding="5dp"
-            />
-
-        <TextView
             android:id="@+id/questionName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Question Name"
+            android:textSize="20dp"
             android:layout_marginTop="20dp"
-            android:padding="10dp"
+            android:padding="5dp"
             />
 
         <LinearLayout

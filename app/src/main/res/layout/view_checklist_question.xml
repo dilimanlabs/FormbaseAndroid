@@ -14,21 +14,12 @@
         >
 
         <TextView
-            android:id="@+id/questionType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Check List"
-            android:layout_marginTop="20dp"
-            android:padding="10dp"
-            />
-
-        <TextView
             android:id="@+id/questionName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Question Name"
             android:layout_marginTop="20dp"
-            android:padding="20dp"
+            android:padding="10dp"
             />
         <LinearLayout
             android:orientation="vertical"
