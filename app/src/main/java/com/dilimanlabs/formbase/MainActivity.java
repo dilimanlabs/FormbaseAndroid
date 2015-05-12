@@ -20,7 +20,9 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
@@ -39,10 +41,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.activeandroid.ActiveAndroid;
 import com.dilimanlabs.formbase.authentication.AccountGeneral;
 import com.dilimanlabs.formbase.model.Answers;
 import com.dilimanlabs.formbase.model.AnswersForApproval;
 import com.dilimanlabs.formbase.model.Category;
+import com.dilimanlabs.formbase.model.CurrentUser;
 import com.dilimanlabs.formbase.model.Form;
 import com.dilimanlabs.formbase.model.Photos;
 import com.dilimanlabs.formbase.objects.CategoryWrapper;
@@ -120,6 +124,7 @@ public class MainActivity extends ActionBarActivity {
     private String currentFormURL;
     private Context context;
     private LoginView loginView;
+    private DrawerLayout mDrawerLayout;
     private TextView path;
     String mCurrentPhotoPath;
     private LinearLayout previousForms;
@@ -157,8 +162,8 @@ public class MainActivity extends ActionBarActivity {
     private Handler handler;
     private com.dilimanlabs.formbase.objects.Form formWithAnswer;
     static final int REQUEST_TAKE_PHOTO = 1;
-    private EditText username;
-    private EditText password;
+    private TextView username;
+    private TextView email;
     private LinearLayout questionsLayout;
     private LinearLayout innerQuestionsLayout;
     private LinearLayout original;
@@ -170,18 +175,33 @@ public class MainActivity extends ActionBarActivity {
     private FormBase formBase;
     private Map<String ,List<Object>> repeatedInner;
     private TextView label;
+    private ActionBarDrawerToggle mDrawerToggle;
+    private Button logout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         formBase = (FormBase)getApplicationContext();
-        initAccounts();
+//        initAccounts();
         init();
     }
 
     public void init(){
+        username = (TextView)findViewById(R.id.name);
+        email = (TextView)findViewById(R.id.email);
         toolbar = (Toolbar)findViewById(R.id.toolbar);
+        logout = (Button) findViewById(R.id.logout);
+        logout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                logout();
+            }
+        });
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerToggle = new ActionBarDrawerToggle(this,  mDrawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+        mDrawerToggle.syncState();
         questionsLayout = (LinearLayout) findViewById(R.id.questionsLayout);
         path = (TextView)questionsLayout.findViewById(R.id.attachment);
         innerQuestionsLayout = (LinearLayout) findViewById(R.id.innerQuestionsLayout);
@@ -245,6 +265,16 @@ public class MainActivity extends ActionBarActivity {
         if(accounts.length == 0){
             addNewAccount(AccountGeneral.ACCOUNT_TYPE, AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS);
         }
+
+    }
+
+    public void logout(){
+        accountManager = AccountManager.get(this);
+        accounts = accountManager.getAccountsByType(AccountGeneral.ACCOUNT_TYPE);
+        accountManager.removeAccount(accounts[0], null, null);
+        ActiveAndroid.getDatabase().close();
+        final Intent intent = new Intent(MainActivity.this, MainActivity.class);
+        startActivity(intent);
     }
 
 
@@ -262,7 +292,6 @@ public class MainActivity extends ActionBarActivity {
             DataCenter.currentPath = mCurrentPhotoPath;
 
     }
-
     @Override
     public void onDestroy(){
         Log.e("Destroy", "ondestroy");
@@ -289,7 +318,6 @@ public class MainActivity extends ActionBarActivity {
                     Button attachment = new Button(this);
                     attachment.setText("Attachment: "+FormBase.currentPath);
                     questionsLayout.addView(attachment);
-
                 }
                 questionsLayout.setVisibility(View.VISIBLE);
             }
@@ -297,8 +325,11 @@ public class MainActivity extends ActionBarActivity {
                 Log.e("Login", "Login");
                 init();
             }
-
-
+        initAccounts();
+        if(CurrentUser.countTable() > 0){
+            email.setText(CurrentUser.getCurrentUser().getEmail());
+            username.setText(CurrentUser.getCurrentUser().getUsername());
+        }
     }
 
     public com.dilimanlabs.formbase.objects.Form createJSONFile(String json){
@@ -327,7 +358,6 @@ public class MainActivity extends ActionBarActivity {
                         Log.e("ID: ", ""+DataCenter.repeaterIdList.get(r).toString());
                         repeatedInner.put(DataCenter.repeaterQuestionNameList.get(r),insertRepeaterAnswersForOuter(DataCenter.questionListMap.get(DataCenter.repeaterQuestionNameList.get(r).toString()), DataCenter.repeaterIdList.get(r).toString()));
                     }
-//                    formWithAnswer.setQuestionGroupRepeaterListOuter(repeatedInner);
                 }else{
                     for(int x = 0; x<childList.size(); x++){
                         final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
@@ -574,7 +604,13 @@ public class MainActivity extends ActionBarActivity {
                 questionGroup.setLevel(Double.parseDouble(map.get("level").toString()));
                 questionGroup.setOrder(Double.parseDouble(map.get("order").toString()));
                 questionGroup.setRepeating(Boolean.parseBoolean(map.get("isRepeating").toString()));
-                questionGroup.setChildList(createChildList(DataCenter.questionListMap.get(map.get("name").toString())));
+                if(Boolean.parseBoolean(map.get("isRepeating").toString())){
+                    questionGroup.setChildList(createChildList(DataCenter.questionListMap.get(map.get("name").toString())));
+                }
+                else{
+                    List child = (List)map.get("childList");
+                    questionGroup.setChildList(createChildList(child));
+                }
                 List<QuestionRepeater> questionRepeaterList = new ArrayList<>();
                 List<Object> listObject1 = (List)repeatedInner.get(map.get("name").toString());
                 for(Object list : listObject1){
@@ -625,7 +661,8 @@ public class MainActivity extends ActionBarActivity {
                 questionNumberField.setLevel(Double.parseDouble(map.get("level").toString()));
                 questionNumberField.setOrder(Double.parseDouble(map.get("order").toString()));
                 questionNumberField.setElName(map.get("elName").toString());
-                questionNumberField.setRanged(Boolean.parseBoolean(map.get("ranged").toString()));
+//                Log.e("Ranged", ""+Boolean.parseBoolean(map.get("ranged").toString()));
+//                questionNumberField.setRanged(Boolean.parseBoolean(map.get("ranged").toString()));
                 questionNumberField.setMinimum(Double.parseDouble(map.get("minimum").toString()));
                 questionNumberField.setMaximum(Double.parseDouble(map.get("maximum").toString()));
                 questionNumberField.setAnswer(DataCenter.editTextMap.get(map.get("name").toString()).getText().toString());
@@ -712,8 +749,6 @@ public class MainActivity extends ActionBarActivity {
             LinkedTreeMap<String, Object> children = (LinkedTreeMap<String, Object>) childrenList.get(a);
             if (children.get("typeName").equals(imageField)) {
                 QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(MainActivity.this);
-                TextView type = (TextView) questionImageFieldView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionImageFieldView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 inner.addView(questionImageFieldView);
@@ -729,8 +764,6 @@ public class MainActivity extends ActionBarActivity {
             }
             else if(children.get("typeName").equals(dateField)){
                 QuestionDateFieldView questionDateField = new QuestionDateFieldView(this);
-                TextView type = (TextView)questionDateField.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView)questionDateField.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 final TextView dateTextView = (TextView)questionDateField.findViewById(R.id.date);
@@ -747,8 +780,6 @@ public class MainActivity extends ActionBarActivity {
             }
             else if (children.get("typeName").equals(switchQuestion)) {
                 QuestionSwitchView questionSwitchView = new QuestionSwitchView(MainActivity.this);
-                TextView type = (TextView) questionSwitchView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionSwitchView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout choices = (LinearLayout) questionSwitchView.findViewById(R.id.questionChoices);
@@ -762,8 +793,6 @@ public class MainActivity extends ActionBarActivity {
                 Log.e("ChildrenList Name", " " + children.get("name"));
             } else if (children.get("typeName").equals(numberField)) {
                 QuestionNumberFieldView questionNumberFieldView = new QuestionNumberFieldView(MainActivity.this);
-                TextView type = (TextView) questionNumberFieldView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionNumberFieldView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout questionAnswer = (LinearLayout)questionNumberFieldView.findViewById(R.id.questionAnswer);
@@ -778,8 +807,6 @@ public class MainActivity extends ActionBarActivity {
                 Log.e("ChildrenList Name", " " + children.get("name"));
             } else if (children.get("typeName").equals(multipleChoice)) {
                 QuestionMultipleChoiceView questionMultipleChoiceView = new QuestionMultipleChoiceView(MainActivity.this);
-                TextView type = (TextView) questionMultipleChoiceView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionMultipleChoiceView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 RadioGroup radioGroup = new RadioGroup(MainActivity.this);
@@ -799,8 +826,6 @@ public class MainActivity extends ActionBarActivity {
                 inner.addView(questionMultipleChoiceView);
             } else if (children.get("typeName").equals(basicTextField)) {
                 QuestionBasicTextField questionBasicTextField = new QuestionBasicTextField(MainActivity.this);
-                TextView type = (TextView) questionBasicTextField.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionBasicTextField.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout questionAnswer = (LinearLayout)questionBasicTextField.findViewById(R.id.questionAnswer);
@@ -814,8 +839,6 @@ public class MainActivity extends ActionBarActivity {
                 Log.e("ChildrenList Name", " " + children.get("name"));
             } else if (children.get("typeName").equals(checkList)) {
                 QuestionCheckListView questionCheckListView = new QuestionCheckListView(MainActivity.this);
-                TextView type = (TextView) questionCheckListView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionCheckListView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout choicesLayout = (LinearLayout) questionCheckListView.findViewById(R.id.questionChoices);
@@ -859,8 +882,6 @@ public class MainActivity extends ActionBarActivity {
         Log.e("ID assigned: ",""+ID);
         questionGroupChild.setId(ID);
         Log.e("ID Created: ",""+questionGroupChild.getId());
-        TextView type = (TextView)questionGroupChild.findViewById(R.id.questionType);
-        type.setText(child.get("typeName").toString());
         TextView name = (TextView)questionGroupChild.findViewById(R.id.questionName);
         name.setText(child.get("name").toString());
         questionGroupChild.setOnClickListener(new View.OnClickListener() {
@@ -877,8 +898,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionGroupView createQuestionGroupViewTop(final LinkedTreeMap<String, Object> child, final LinearLayout innerQuestionsLayout, final LinearLayout questionsLayout){
         final QuestionGroupView questionGroupChild = new QuestionGroupView(this);
-        TextView type = (TextView)questionGroupChild.findViewById(R.id.questionType);
-        type.setText(child.get("typeName").toString());
         TextView name = (TextView)questionGroupChild.findViewById(R.id.questionName);
         name.setText(child.get("name").toString());
         List childrenList = (List)child.get("childList");
@@ -904,8 +923,6 @@ public class MainActivity extends ActionBarActivity {
             final LinkedTreeMap<String, Object> children = (LinkedTreeMap<String, Object>) childrenList.get(a);
             if (children.get("typeName").equals(imageField)) {
                 QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(MainActivity.this);
-                TextView type = (TextView) questionImageFieldView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionImageFieldView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 inner.addView(questionImageFieldView);
@@ -921,8 +938,6 @@ public class MainActivity extends ActionBarActivity {
             }
             else if(children.get("typeName").equals(dateField)){
                 QuestionDateFieldView questionDateField = new QuestionDateFieldView(this);
-                TextView type = (TextView)questionDateField.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView)questionDateField.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 final TextView dateTextView = (TextView)questionDateField.findViewById(R.id.date);
@@ -938,8 +953,6 @@ public class MainActivity extends ActionBarActivity {
             }
             else if (children.get("typeName").equals(switchQuestion)) {
                 QuestionSwitchView questionSwitchView = new QuestionSwitchView(MainActivity.this);
-                TextView type = (TextView) questionSwitchView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionSwitchView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout choices = (LinearLayout) questionSwitchView.findViewById(R.id.questionChoices);
@@ -951,8 +964,6 @@ public class MainActivity extends ActionBarActivity {
                 inner.addView(questionSwitchView);
             } else if (children.get("typeName").equals(numberField)) {
                 QuestionNumberFieldView questionNumberFieldView = new QuestionNumberFieldView(MainActivity.this);
-                TextView type = (TextView) questionNumberFieldView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionNumberFieldView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout questionAnswer = (LinearLayout)questionNumberFieldView.findViewById(R.id.questionAnswer);
@@ -967,8 +978,6 @@ public class MainActivity extends ActionBarActivity {
                 Log.e("ChildrenList Name", " " + children.get("name"));
             } else if (children.get("typeName").equals(multipleChoice)) {
                 QuestionMultipleChoiceView questionMultipleChoiceView = new QuestionMultipleChoiceView(MainActivity.this);
-                TextView type = (TextView) questionMultipleChoiceView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionMultipleChoiceView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 RadioGroup radioGroup = new RadioGroup(MainActivity.this);
@@ -988,8 +997,6 @@ public class MainActivity extends ActionBarActivity {
                 inner.addView(questionMultipleChoiceView);
             } else if (children.get("typeName").equals(basicTextField)) {
                 QuestionBasicTextField questionBasicTextField = new QuestionBasicTextField(MainActivity.this);
-                TextView type = (TextView) questionBasicTextField.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionBasicTextField.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout questionAnswer = (LinearLayout)questionBasicTextField.findViewById(R.id.questionAnswer);
@@ -1003,8 +1010,6 @@ public class MainActivity extends ActionBarActivity {
                 Log.e("ChildrenList Name", " " + children.get("name"));
             } else if (children.get("typeName").equals(checkList)) {
                 QuestionCheckListView questionCheckListView = new QuestionCheckListView(MainActivity.this);
-                TextView type = (TextView) questionCheckListView.findViewById(R.id.questionType);
-                type.setText(children.get("typeName").toString());
                 TextView name = (TextView) questionCheckListView.findViewById(R.id.questionName);
                 name.setText(children.get("name").toString());
                 LinearLayout choicesLayout = (LinearLayout) questionCheckListView.findViewById(R.id.questionChoices);
@@ -1044,8 +1049,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionSwitchView createQuestionSwitchView(String typeName, String questionName, boolean isRepeater, String repeaterId){
         QuestionSwitchView questionSwitchView = new QuestionSwitchView(this);
-        TextView type = (TextView)questionSwitchView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionSwitchView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout choices = (LinearLayout)questionSwitchView.findViewById(R.id.questionChoices);
@@ -1058,14 +1061,13 @@ public class MainActivity extends ActionBarActivity {
         }
         toggleButton.setTextOn("True");
         toggleButton.setTextOff("False");
+        toggleButton.setChecked(false);
         choices.addView(toggleButton);
         return questionSwitchView;
     }
 
     public QuestionSwitchView createQuestionSwitchViewWithAnswer(String typeName, String questionName, String answer){
         QuestionSwitchView questionSwitchView = new QuestionSwitchView(this);
-        TextView type = (TextView)questionSwitchView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionSwitchView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout choices = (LinearLayout)questionSwitchView.findViewById(R.id.questionChoices);
@@ -1081,8 +1083,6 @@ public class MainActivity extends ActionBarActivity {
     @SuppressWarnings("deprecation")
     public QuestionDateFieldView createQuestionDateField(String typeName, final String questionName, boolean isRepeater, String repeaterId){
         QuestionDateFieldView questionDateField = new QuestionDateFieldView(this);
-        TextView type = (TextView)questionDateField.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionDateField.findViewById(R.id.questionName);
         name.setText(questionName);
         final TextView dateTextView = (TextView)questionDateField.findViewById(R.id.date);
@@ -1106,8 +1106,6 @@ public class MainActivity extends ActionBarActivity {
     @SuppressWarnings("deprecation")
     public QuestionDateFieldView createQuestionDateFieldWithAnswer(String typeName, final String questionName, String answer){
         QuestionDateFieldView questionDateField = new QuestionDateFieldView(this);
-        TextView type = (TextView)questionDateField.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionDateField.findViewById(R.id.questionName);
         name.setText(questionName);
         final TextView dateTextView = (TextView)questionDateField.findViewById(R.id.date);
@@ -1126,8 +1124,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionNumberFieldView createQuestionNumberFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId){
         QuestionNumberFieldView questionNumberFieldView = new QuestionNumberFieldView(this);
-        TextView type = (TextView)questionNumberFieldView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionNumberFieldView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionNumberFieldView.findViewById(R.id.questionAnswer);
@@ -1147,8 +1143,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionNumberFieldView createQuestionNumberFieldViewWithAnswer(String typeName, String questionName, String numberAnswer){
         QuestionNumberFieldView questionNumberFieldView = new QuestionNumberFieldView(this);
-        TextView type = (TextView)questionNumberFieldView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionNumberFieldView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionNumberFieldView.findViewById(R.id.questionAnswer);
@@ -1164,8 +1158,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionBasicTextField createQuestionBasicTextField(String typeName, String questionName, boolean isRepeater, String repeaterId){
         QuestionBasicTextField questionBasicTextField = new QuestionBasicTextField(this);
-        TextView type = (TextView)questionBasicTextField.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionBasicTextField.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionBasicTextField.findViewById(R.id.questionAnswer);
@@ -1184,8 +1176,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionBasicTextField createQuestionBasicTextFieldWithAnswer(String typeName, String questionName, String textFieldAnswer){
         QuestionBasicTextField questionBasicTextField = new QuestionBasicTextField(this);
-        TextView type = (TextView)questionBasicTextField.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionBasicTextField.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionBasicTextField.findViewById(R.id.questionAnswer);
@@ -1200,8 +1190,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionImageFieldView createQuestionImageFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId){
         QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(this);
-        TextView type = (TextView)questionImageFieldView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView)questionImageFieldView.findViewById(R.id.questionName);
         name.setText(questionName);
         questionImageFieldView.setOnClickListener(new View.OnClickListener() {
@@ -1216,8 +1204,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionMultipleChoiceView createQuestionMultipleChoiceView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId){
         QuestionMultipleChoiceView questionMultipleChoiceView = new QuestionMultipleChoiceView(this);
-        TextView type = (TextView) questionMultipleChoiceView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView) questionMultipleChoiceView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout choicesLayout = (LinearLayout) questionMultipleChoiceView.findViewById(R.id.questionChoices);
@@ -1244,8 +1230,6 @@ public class MainActivity extends ActionBarActivity {
     public QuestionMultipleChoiceView createQuestionMultipleChoiceViewWithAnswer(String typeName, String questionName, List choices, String answer){
         QuestionMultipleChoiceView questionMultipleChoiceView = new QuestionMultipleChoiceView(this);
         List<RadioButton> radioButtonList = new ArrayList<>();
-        TextView type = (TextView) questionMultipleChoiceView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView) questionMultipleChoiceView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout choicesLayout = (LinearLayout) questionMultipleChoiceView.findViewById(R.id.questionChoices);
@@ -1270,8 +1254,6 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionCheckListView createQuestionCheckListView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId){
         QuestionCheckListView questionCheckListView = new QuestionCheckListView(this);
-        TextView type = (TextView) questionCheckListView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView) questionCheckListView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionChoices = (LinearLayout)questionCheckListView.findViewById(R.id.questionChoices);
@@ -1298,8 +1280,6 @@ public class MainActivity extends ActionBarActivity {
             answer.add(a.get("answer").toString());
         }
         QuestionCheckListView questionCheckListView = new QuestionCheckListView(this);
-        TextView type = (TextView) questionCheckListView.findViewById(R.id.questionType);
-        type.setText(typeName);
         TextView name = (TextView) questionCheckListView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionChoices = (LinearLayout)questionCheckListView.findViewById(R.id.questionChoices);
@@ -1318,6 +1298,8 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void createAllQuestions(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Form fo, final String formName){
+        DataCenter.repeaterQuestionNameList.clear();
+        DataCenter.repeaterIdList.clear();
         capture.setVisibility(View.VISIBLE);
         questionsLayout.removeAllViews();
         for(int i =0; i<form.getChildList().size(); i++){
@@ -1342,85 +1324,16 @@ public class MainActivity extends ActionBarActivity {
                     });
                 }
                 else{
+                    Log.e("Repeater", "False");
                     Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
                     Log.e("Name: ", " "+map.get("name"));
                     for(int x = 0; x<childList.size(); x++){
                         final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
-                        if(!Boolean.parseBoolean(map.get("isRepeating").toString()) == true){
-                            if(child.get("typeName").equals(questionGroup)){
-                                final QuestionGroupView questionGroupChild = createQuestionGroupViewTop(child, original, questionsLayout);
-                                ImageButton addInner = (ImageButton)questionGroupChild.findViewById(R.id.add_new);
-                                if(Boolean.parseBoolean(child.get("isRepeating").toString()) == true){
-                                    addInner.setVisibility(View.VISIBLE);
-                                }
+                         if(child.get("typeName").equals(questionGroup)){
+                                final QuestionGroupView questionGroupChild = new QuestionGroupView(this);
+
                                 questions.addView(questionGroupChild);
-                                addInner.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        final QuestionGroupView newQuestionGroupView = createQuestionGroupView(child, innerQuestionsLayout, questionsLayout);
-                                        List childrenList = (List)child.get("childList");
-                                        if(!previousID.contains(v.getId())){
-                                            Log.e("Prev size is: ", ""+previousID.size() );
-                                            createQuestionGroup(childrenList,innerQuestionsLayout, questionsLayout, newQuestionGroupView);
-                                            innerQuestionsLayout.addView(innerQuestionViewMap.get(String.valueOf(newQuestionGroupView.getId())));
-                                            previousID.add(newQuestionGroupView.getId());
-                                            Log.e("Prev size is: ", ""+previousID.size() );
-                                            for(int i=0; i<previousID.size(); i++){
-                                                Log.e("Prev sample: ", ""+previousID.get(i));
-                                            }
-                                        }
-                                        newQuestionGroupView.setOnClickListener(new View.OnClickListener() {
-                                            @Override
-                                            public void onClick(View v) {
-
-                                                for(int i=0; i<innerQuestionsLayout.getChildCount(); i++){
-                                                    if(innerQuestionsLayout.getChildAt(i).getId() == v.getId() ){
-                                                        Log.e("ID's :",""+ innerQuestionsLayout.getChildAt(i).getId());
-                                                        InnerQuestionView innerQuestionView = (InnerQuestionView)innerQuestionsLayout.getChildAt(i);
-                                                        LinearLayout linearLayout = (LinearLayout) innerQuestionView.findViewById(R.id.innerQuestion);
-                                                        linearLayout.setVisibility(View.VISIBLE);
-                                                        innerQuestionView.setVisibility(View.VISIBLE);
-                                                    }
-                                                    else{
-                                                        InnerQuestionView innerQuestionView = (InnerQuestionView)innerQuestionsLayout.getChildAt(i);
-                                                        LinearLayout linearLayout = (LinearLayout) innerQuestionView.findViewById(R.id.innerQuestion);
-                                                        linearLayout.setVisibility(View.GONE);
-                                                        innerQuestionView.setVisibility(View.GONE);
-                                                    }
-                                                }
-                                                innerQuestionsLayout.setVisibility(View.VISIBLE);
-                                                questionsLayout.setVisibility(View.GONE);
-                                            }
-                                        });
-                                        ImageButton removeInner = (ImageButton)newQuestionGroupView.findViewById(R.id.remove_new);
-                                        removeInner.setVisibility(View.VISIBLE);
-                                        questions.addView(newQuestionGroupView);
-                                        removeInner.setOnClickListener(new View.OnClickListener() {
-                                            @Override
-                                            public void onClick(View v) {
-                                                questions.removeView(newQuestionGroupView);
-                                                innerQuestionsLayout.removeView(innerQuestionViewMap.get(String.valueOf(newQuestionGroupView.getId())));
-                                                DataCenter.editTextMap.remove(String.valueOf(newQuestionGroupView.getId()));
-                                                DataCenter.toggleButtonMap.remove(String.valueOf(newQuestionGroupView.getId()));
-                                                DataCenter.checkBoxMap.remove(String.valueOf(newQuestionGroupView.getId()));
-                                                DataCenter.radioGroupMap.remove(String.valueOf(newQuestionGroupView.getId()));
-                                                DataCenter.dateTextViewMap.remove(String.valueOf(newQuestionGroupView.getId()));
-                                                Log.e("Index", ""+String.valueOf(newQuestionGroupView.getId()));
-                                                previousID.remove(Integer.valueOf(newQuestionGroupView.getId()));
-
-                                                Log.e("Prev size is: ", ""+previousID.size() );
-                                                for(int i=0; i<previousID.size(); i++){
-                                                    Log.e("Prev size is: ", ""+previousID.get(i));
-                                                }
-                                                Log.e("Removed", "ID: "+String.valueOf(newQuestionGroupView.getId()));
-                                            }
-                                        });
-                                    }
-                                });
-
-                            }
                         }
-
                         else if(child.get("typeName").equals(dateField)){
                             questions.addView(createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), false, null));
                         }
@@ -1478,7 +1391,7 @@ public class MainActivity extends ActionBarActivity {
             }
         }
         Button submit = new Button(this);
-        submit.setText("Submit");
+        submit.setText("Save as Draft");
         questionsLayout.addView(submit);
         submit.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1515,48 +1428,96 @@ public class MainActivity extends ActionBarActivity {
                 questionGroupView = new QuestionGroupView(this);
                 final TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
                 final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
-                questions.setVisibility(View.VISIBLE);
-                List childListName = (List)map.get("childList");
-                LinkedTreeMap<String, Object> name = (LinkedTreeMap<String, Object>) childListName.get(0);
-                questionName.setText(name.get("name").toString());
-                Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
-                Log.e("Name: ", " "+map.get("name"));
-                List childList = (List)map.get("questionRepeaterList");
-                for(int x = 0; x<childList.size(); x++){
-                    final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
-                    List children = (List)child.get("repeaterQuestion");
-                    Log.e("Repeater Question", child.get("repeaterQuestion").toString());
+                if(Boolean.parseBoolean(map.get("isRepeating").toString()) == true){
+                    questions.setVisibility(View.VISIBLE);
+                    questionName.setText(map.get("name").toString());
+                    Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
+                    Log.e("Name: ", " "+map.get("name"));
+                    List childList = (List)map.get("questionRepeaterList");
+                    for(int x = 0; x<childList.size(); x++){
+                        final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
+                        List children = (List)child.get("repeaterQuestion");
+                        Log.e("Repeater Question", child.get("repeaterQuestion").toString());
+                        LinearLayout.LayoutParams linearLayoutParams = new LinearLayout.LayoutParams((LinearLayout.LayoutParams.MATCH_PARENT),(LinearLayout.LayoutParams.WRAP_CONTENT));
+                        LinearLayout repeaterLayout = new LinearLayout(MainActivity.this);
+                        repeaterLayout.setOrientation(LinearLayout.VERTICAL);
+                        repeaterLayout.setLayoutParams(linearLayoutParams);
+                        TextView numberTextView = new TextView(MainActivity.this);
+                        numberTextView.setTextSize(20);
+                        numberTextView.setText(""+(x+1));
+                        repeaterLayout.addView(numberTextView);
                         for(int y = 0; y<children.size(); y++){
+
                             final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) children.get(y);
                             if(c.get("typeName").equals(questionGroup)){
-                                questions.addView(createQuestionGroupViewTop(child, original, questionsLayout));
+                                repeaterLayout.addView(createQuestionGroupViewTop(child, original, questionsLayout));
                             }
                             else if(c.get("typeName").equals(dateField)){
-                                questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                                repeaterLayout.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(imageField)){
-                                questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
                             }
                             else if(c.get("typeName").equals(switchQuestion)){
-                                questions.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                                repeaterLayout.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(numberField)){
-                                questions.addView(createQuestionNumberFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                                repeaterLayout.addView(createQuestionNumberFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(multipleChoice)){
                                 List choices = (List)c.get("choices");
-                                questions.addView(createQuestionMultipleChoiceViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, c.get("answer").toString()));
+                                repeaterLayout.addView(createQuestionMultipleChoiceViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(basicTextField)){
-                               questions.addView(createQuestionBasicTextFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                                repeaterLayout.addView(createQuestionBasicTextFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(checkList)){
                                 List choices = (List)c.get("choices");
                                 List answers = (List)c.get("answers");
-                                questions.addView(createQuestionCheckListViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, answers));
+                                repeaterLayout.addView(createQuestionCheckListViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, answers));
                             }
-                        }
 
+                        }
+                        questions.addView(repeaterLayout);
+
+                    }
+                }
+                else{
+                    questions.setVisibility(View.VISIBLE);
+                    questionName.setText(map.get("name").toString());
+                    Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
+                    Log.e("Name: ", " "+map.get("name"));
+                    List childList = (List)map.get("childList");
+                    for(int y = 0; y<childList.size(); y++){
+                        final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) childList.get(y);
+                        if(c.get("typeName").equals(questionGroup)){
+                            questions.addView(createQuestionGroupViewTop(c, original, questionsLayout));
+                        }
+                        else if(c.get("typeName").equals(dateField)){
+                            questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(imageField)){
+                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                        }
+                        else if(c.get("typeName").equals(switchQuestion)){
+                            questions.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(numberField)){
+                            questions.addView(createQuestionNumberFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(multipleChoice)){
+                            List choices = (List)c.get("choices");
+                            questions.addView(createQuestionMultipleChoiceViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(basicTextField)){
+                            questions.addView(createQuestionBasicTextFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(checkList)){
+                            List choices = (List)c.get("choices");
+                            List answers = (List)c.get("answers");
+                            questions.addView(createQuestionCheckListViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, answers));
+                        }
+                    }
                 }
                 questionsLayout.addView(questionGroupView);
             }
@@ -1590,14 +1551,14 @@ public class MainActivity extends ActionBarActivity {
             Button attachment = new Button(this);
             attachment.setText("Attachment: "+Photos.getPhotoPath(answer.local_id));
             Button submit = new Button(this);
-            submit.setText("Submit");
+            submit.setText("Submit for Approval");
             questionsLayout.addView(attachment);
             questionsLayout.addView(submit);
             submit.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     Log.e("Im in", "Im in");
-                    if(isAllFieldsValid(DataCenter.editTextMap)){
+                    if(isAllFieldsValid(DataCenter.editTextMap) && isAllRadioGroupValid(DataCenter.radioGroupMap)){
                         Log.e("Json", json);
                         jsonAnswer = json;
                         DataCenter.answers = answer;
@@ -1631,44 +1592,45 @@ public class MainActivity extends ActionBarActivity {
                 final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
                 questions.setVisibility(View.VISIBLE);
                 questionName.setText(map.get("name").toString());
-//                Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
-//                Log.e("Name: ", " "+map.get("name"));
-//                List childList = (List)map.get("questionGroupRepeaterList");
-//                for(int x = 0; x<childList.size(); x++){
-//                    final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
-//                    if(child.get("typeName").equals(questionGroup)){
-//                        questions.addView(createQuestionGroupViewTop(child, original, questionsLayout));
-//                    }
-//                    else if(child.get("typeName").equals(dateField)){
-//                        questions.addView(createQuestionDateFieldWithAnswer(child.get("typeName").toString(), child.get("name").toString(), child.get("answer").toString()));
-//                    }
-//                    else if(child.get("typeName").equals(imageField)){
-//                        questions.addView(createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null));
-//                    }
-//                    else if(child.get("typeName").equals(switchQuestion)){
-//                        questions.addView(createQuestionSwitchViewWithAnswer(child.get("typeName").toString(), child.get("name").toString(), child.get("answer").toString()));
-//                    }
-//                    else if(child.get("typeName").equals(numberField)){
-//                        questions.addView(createQuestionNumberFieldViewWithAnswer(child.get("typeName").toString(), child.get("name").toString(), child.get("answer").toString()));
-//                    }
-//                    else if(child.get("typeName").equals(multipleChoice)){
-//                        List choices = (List)child.get("choices");
-//                        questions.addView(createQuestionMultipleChoiceViewWithAnswer(child.get("typeName").toString(), child.get("name").toString(), choices, child.get("answer").toString()));
-//                    }
-//                    else if(child.get("typeName").equals(basicTextField)){
-//                        Log.e("Type", child.get("typeName").toString());
-//                        Log.e("Name", child.get("name").toString());
-//                        Log.e("Answer", child.get("answer").toString());
-//                        questions.addView(createQuestionBasicTextFieldWithAnswer(child.get("typeName").toString(), child.get("name").toString(), child.get("answer").toString()));
-//                    }
-//                    else if(child.get("typeName").equals(checkList)){
-//                        List choices = (List)child.get("choices");
-//                        List answers = (List)child.get("answers");
-//                        questions.addView(createQuestionCheckListViewWithAnswer(child.get("typeName").toString(), child.get("name").toString(), choices, answers));
-//                    }
-//
-//
-//                }
+                Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
+                Log.e("Name: ", " "+map.get("name"));
+                List childList = (List)map.get("questionRepeaterList");
+                for(int x = 0; x<childList.size(); x++){
+                    final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
+                    List children = (List)child.get("repeaterQuestion");
+                    Log.e("Repeater Question", child.get("repeaterQuestion").toString());
+                    for(int y = 0; y<children.size(); y++){
+                        final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) children.get(y);
+                        if(c.get("typeName").equals(questionGroup)){
+                            questions.addView(createQuestionGroupViewTop(child, original, questionsLayout));
+                        }
+                        else if(c.get("typeName").equals(dateField)){
+                            questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(imageField)){
+                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                        }
+                        else if(c.get("typeName").equals(switchQuestion)){
+                            questions.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(numberField)){
+                            questions.addView(createQuestionNumberFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(multipleChoice)){
+                            List choices = (List)c.get("choices");
+                            questions.addView(createQuestionMultipleChoiceViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(basicTextField)){
+                            questions.addView(createQuestionBasicTextFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                        else if(c.get("typeName").equals(checkList)){
+                            List choices = (List)c.get("choices");
+                            List answers = (List)c.get("answers");
+                            questions.addView(createQuestionCheckListViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, answers));
+                        }
+                    }
+
+                }
                 questionsLayout.addView(questionGroupView);
             }
             else if(map.get("typeName").equals(dateField)){
@@ -1703,7 +1665,7 @@ public class MainActivity extends ActionBarActivity {
                 @Override
                 public void onClick(View v) {
                     Log.e("Clicked", "Clicked");
-                    new SendApproveAnswer(url).execute();
+                    new SendApproveAnswer(url, questionsLayout).execute();
                 }
             });
             questionsLayout.addView(approve);
@@ -2063,9 +2025,9 @@ public class MainActivity extends ActionBarActivity {
         json.setDate_modified("2001-11-11T11:11:00Z");
         json.setAnswer(answer);
         json.setState("submitted");
-        json.setCreated_by(DataCenter.GLOBAL_URL+"user/1/");
+        json.setCreated_by(DataCenter.GLOBAL_URL+"users/1/");
         json.setFormbase(form);
-        json.setModified_by(DataCenter.GLOBAL_URL+"user/1/");
+        json.setModified_by(DataCenter.GLOBAL_URL+"users/1/");
         String data = gson.toJson(json);
         Log.e("Json: ", data);
         URL url = null;
@@ -2128,6 +2090,7 @@ public class MainActivity extends ActionBarActivity {
         }
         catch(IOException e)
         {
+            Toast.makeText(MainActivity.this, "Answer sumbission failed please check your network connection", Toast.LENGTH_LONG);
             e.printStackTrace();
             Log.e("Error", e.toString());
 
@@ -2212,15 +2175,14 @@ public class MainActivity extends ActionBarActivity {
     private class SendAnswer extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... params) {
-            Log.e("Path", DataCenter.currentPath);
             String answerURL = sendAnswers(currentFormURL, jsonAnswer);
             String formName = Answers.getAnswerByURL(answerURL).getLocal_id();
-            File file = new File(DataCenter.currentPath);
-            String response = sendPhoto(answerURL, "name", file);
-            PhotoObject photoObject = gson.fromJson(response, PhotoObject.class);
-            Log.e("PhotoObject", photoObject.getUrl());
-            Photos.updatePhoto(formName, photoObject.getUrl());
-            Log.e("Photo", response);
+            if(DataCenter.currentPath != null && DataCenter.currentPath != ""){
+                File file = new File(DataCenter.currentPath);
+                String response = sendPhoto(answerURL, "name", file);
+                PhotoObject photoObject = gson.fromJson(response, PhotoObject.class);
+                Photos.updatePhoto(formName, photoObject.getUrl());
+            }
             return null;
         }
 
@@ -2241,12 +2203,24 @@ public class MainActivity extends ActionBarActivity {
         for (Map.Entry<String, EditText> entry : editTextMap.entrySet())
         {
             if(!isInputValid(entry.getValue().getText().toString())){
+                entry.getValue().requestFocus();
                 entry.getValue().setError("Must not be empty");
                 return false;
             }
         }
         return true;
 
+    }
+
+    public boolean isAllRadioGroupValid(Map<String, RadioGroup> radioGroupMap){
+        for(Map.Entry<String, RadioGroup> entry : radioGroupMap.entrySet()){
+            if(!String.valueOf(entry.getValue().getCheckedRadioButtonId()).equals(null) && !String.valueOf(entry.getValue().getCheckedRadioButtonId()).equals("") ){
+                entry.getValue().requestFocus();
+                Toast.makeText(MainActivity.this, "Radiobutton cannot be empty", Toast.LENGTH_SHORT);
+                return false;
+            }
+        }
+        return true;
     }
     public boolean isInputValid(String input){
         if(input != null && input.length()>0){
@@ -2282,7 +2256,7 @@ public class MainActivity extends ActionBarActivity {
 
 
     public void retrieveAllData(final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, final LinearLayout original){
-        Log.e("Categort Size", ""+Category.countTable());
+        Log.e("Category Size", ""+Category.countTable());
         loginView.setVisibility(View.GONE);
         LinearLayout layoutCategories = (LinearLayout) categoryView.findViewById(R.id.layoutCategories);
         layoutCategories.removeAllViews();
@@ -2311,6 +2285,7 @@ public class MainActivity extends ActionBarActivity {
                                 formView = (FormView)findViewById(R.id.formView);
                                 final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
                                 Button addButton = (Button) formView.findViewById(R.id.addButton);
+                                TextView retrieveFormLabel = (TextView)formView.findViewById(R.id.retrieveFormLabel);
                                 Button retrieveButton = (Button) formView.findViewById(R.id.retrieve);
                                 retrieveButton.setOnClickListener(new View.OnClickListener() {
                                     @Override
@@ -2374,7 +2349,14 @@ public class MainActivity extends ActionBarActivity {
                                         }).show();
                                     }
                                 });
-
+                                if(Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
+                                    addButton.setVisibility(View.GONE);
+                                }
+                                else{
+                                    retrieveButton.setVisibility(View.GONE);
+                                    retrieveForms.setVisibility(View.GONE);
+                                    retrieveFormLabel.setVisibility(View.GONE);
+                                }
                                 formsView.setVisibility(View.GONE);
                                 FormBase.viewDeque.addLast(formsView);
                                 formView.setVisibility(View.VISIBLE);
@@ -2420,9 +2402,13 @@ public class MainActivity extends ActionBarActivity {
                                 currentFormURL=f.getUrl();
                                 final String formNameString = buttonForm.getText().toString();
                                 formView = (FormView)findViewById(R.id.formView);
+                                TextView retrieveFormLabel = (TextView)formView.findViewById(R.id.retrieveFormLabel);
+                                // retrieve Forms
                                 final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
-                                Button addButton = (Button) formView.findViewById(R.id.addButton);
-                                Button retrieveButton = (Button) formView.findViewById(R.id.retrieve);
+                                //add Button
+                                final Button addButton = (Button) formView.findViewById(R.id.addButton);
+                                //Retrieve Button
+                                final Button retrieveButton = (Button) formView.findViewById(R.id.retrieve);
                                 retrieveButton.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
@@ -2430,6 +2416,7 @@ public class MainActivity extends ActionBarActivity {
                                         new GetAnswers(retrieveForms, buttonForm.getText().toString()).execute();
                                     }
                                 });
+                                //Previous Forms
                                 previousForms = (LinearLayout) formView.findViewById(R.id.previousForms);
                                 previousForms.removeAllViews();
                                 previousCategory = f.getCategory();
@@ -2485,6 +2472,14 @@ public class MainActivity extends ActionBarActivity {
                                         }).show();
                                     }
                                 });
+                                if(Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
+                                    addButton.setVisibility(View.GONE);
+                                }
+                                else{
+                                    retrieveButton.setVisibility(View.GONE);
+                                    retrieveForms.setVisibility(View.GONE);
+                                    retrieveFormLabel.setVisibility(View.GONE);
+                                }
                                 formsView.setVisibility(View.GONE);
                                 FormBase.viewDeque.addLast(formsView);
                                 formView.setVisibility(View.VISIBLE);
@@ -2526,7 +2521,12 @@ public class MainActivity extends ActionBarActivity {
                         formView.setVisibility(View.GONE);
                         label.setText(previousFormsButton.getText().toString());
                         FormBase.viewDeque.addLast(formView);
-                        FormBase.labelDeque.addLast(labelString);
+                        try {
+                            FormBase.labelDeque.addLast(labelString);
+                        }
+                        catch (Exception e){
+                            e.printStackTrace();
+                        }
                         questionsLayout.setVisibility(View.VISIBLE);
                         current = questionsLayout;
                     }
@@ -2709,6 +2709,7 @@ public class MainActivity extends ActionBarActivity {
         }
         catch(Exception e)
         {
+            //Toast.makeText(MainActivity.this, "Photo submission failed please check your network connection", Toast.LENGTH_LONG);
             e.printStackTrace();
         }
 
@@ -2723,8 +2724,6 @@ public class MainActivity extends ActionBarActivity {
         DataCenter.questionListMap.put(questionNameString, childList);
         TextView questionName = (TextView)questions.findViewById(R.id.questionName);
         questionName.setVisibility(View.GONE);
-        TextView questionTypeTextView = (TextView) questions.findViewById(R.id.questionType);
-        questionTypeTextView.setVisibility(View.GONE);
         final ScrollView scrollViewRepeater = (ScrollView)questions.findViewById(R.id.scrollViewRepeater);
         scrollViewRepeater.setVisibility(View.VISIBLE);
         final LinearLayout repeaterQuestions = (LinearLayout)questions.findViewById(R.id.repeaterQuestions);
@@ -2852,7 +2851,7 @@ public class MainActivity extends ActionBarActivity {
         {
             url = new URL(DataCenter.GLOBAL_URL+"answers/?format=json");
             connection = (HttpURLConnection) url.openConnection();
-            Log.e("get Answers token", accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
+           // Log.e("get Answers token", accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Authorization", "Token " +accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
             Log.e(" header", connection.getRequestProperties().get("Authorization").toString());
@@ -2911,16 +2910,18 @@ public class MainActivity extends ActionBarActivity {
             List<AnswersForApproval> answersForApprovalList = AnswersForApproval.getAllAnswersForApproval();
             for(AnswersForApproval answersForApproval : answersForApprovalList){
                 Button button = new Button(MainActivity.this);
-                button.setText(answersForApproval.getUrl());
+                button.setText(answersForApproval.getCreated_by());
                 retrieveViews.addView(button);
+                final Map<String, String> stringMap = new HashMap<>();
+                stringMap.put(answersForApproval.getCreated_by(), answersForApproval.getUrl());
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         Button b = (Button)v;
-                        AnswersForApproval afa = AnswersForApproval.getAnswersForApprovalByURL(b.getText().toString());
+                        AnswersForApproval afa = AnswersForApproval.getAnswersForApprovalByURL(stringMap.get(b.getText().toString()));
                         com.dilimanlabs.formbase.objects.Form form = gson.fromJson(afa.getAnswer(), com.dilimanlabs.formbase.objects.Form.class);
                         Log.e("Prev Content", afa.getAnswer());
-                        createPreviousFormForApproval(form, questionsLayout, b.getText().toString());
+                        createPreviousFormForApproval(form, questionsLayout, stringMap.get(b.getText().toString()));
                         formView.setVisibility(View.GONE);
                         FormBase.viewDeque.addLast(formView);
                         questionsLayout.setVisibility(View.VISIBLE);
@@ -2966,9 +2967,11 @@ public class MainActivity extends ActionBarActivity {
         {
             newUrl = new URL(url);
             connection = (HttpURLConnection) newUrl.openConnection();
+            Log.e("URL", url);
             Log.e("get Answers token", accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
             connection.setRequestMethod("PUT");
             connection.setRequestProperty("Authorization", "Token " +accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
+            Log.e("Code Error", ""+connection.getResponseCode());
             request = new OutputStreamWriter(connection.getOutputStream());
             request.write(data);
             request.flush();
@@ -3003,20 +3006,24 @@ public class MainActivity extends ActionBarActivity {
 
     private class SendApproveAnswer extends AsyncTask<String, Void, String> {
         String url;
+        LinearLayout current;
 
-        private SendApproveAnswer(String url) {
+        private SendApproveAnswer(String url, LinearLayout current) {
             this.url = url;
+            this.current = current;
         }
 
         @Override
         protected String doInBackground(String... params) {
             sendApproveAnswer(url);
+            getAnswers();
             return null;
         }
 
         @Override
         protected void onPostExecute(String result) {
 
+            backView(current, FormBase.viewDeque.removeLast());
         }
 
         @Override
@@ -3028,6 +3035,5 @@ public class MainActivity extends ActionBarActivity {
         protected void onProgressUpdate(Void... values) {
         }
     }
-
 
 }

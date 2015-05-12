@@ -13,16 +13,17 @@
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/toolbar"
+
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
+        android:background="@color/orange"
         android:minHeight="?attr/actionBarSize">
 
         <ImageView
             android:id="@+id/back"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_action_back"
+            android:src="@drawable/abc_ic_ab_back_mtrl_am_alpha"
             android:padding="2dp"
             android:visibility="gone"
             />

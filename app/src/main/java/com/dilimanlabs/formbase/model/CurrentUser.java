@@ -83,4 +83,8 @@ public class CurrentUser extends Model {
     public static void deleteData(){
         new Delete().from(CurrentUser.class).execute();
     }
+
+    public static int countTable(){
+        return new Select().from(CurrentUser.class).execute().size();
+    }
 }
