@@ -7,6 +7,8 @@
 
 <LinearLayout
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:id="@+id/mainLayout"
+    android:background="@color/white"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".MainActivity">
@@ -16,7 +18,7 @@
 
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/orange"
+        android:background="@color/orange_dark"
         android:minHeight="?attr/actionBarSize">
 
         <ImageView
@@ -68,12 +70,13 @@
         android:visibility="gone"
         />
 
+
+
     <com.dilimanlabs.formbase.views.FormView
         android:id="@+id/formView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"
-        />
+        android:visibility="gone"/>
 
 
     <ScrollView

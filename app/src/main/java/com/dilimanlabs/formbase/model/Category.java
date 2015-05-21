@@ -26,6 +26,7 @@ public class Category extends Model {
     @Column(name = "Parent")
     public String parent;
 
+
     public String getUrl() {
         return url;
     }
@@ -67,12 +68,12 @@ public class Category extends Model {
         return category.getName();
     }
 
-    public static Category getCategoryName(String name){
-        return new Select().from(Category.class).where("Name = ?",name).executeSingle();
+    public static List<Category> getAllCategoryByURL(String parent){
+        return new Select().from(Category.class).where("Parent = ?",parent).execute();
     }
 
-    public List<Answers> forms() {
-        return getMany(Answers.class, "Category");
+    public static Category getURLByCategoryName(String name){
+        return new Select().from(Category.class).where("Name = ?", name).executeSingle();
     }
 
     public static int countTable(){

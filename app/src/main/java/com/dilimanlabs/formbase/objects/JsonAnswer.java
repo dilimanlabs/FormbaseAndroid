@@ -14,6 +14,7 @@ public class JsonAnswer {
     String formbase;
     String modified_by;
     String fulfilled;
+    String editing;
 
 
     public String getUrl() {
@@ -86,5 +87,13 @@ public class JsonAnswer {
 
     public void setFulfilled(String fulfilled) {
         this.fulfilled = fulfilled;
+    }
+
+    public String getEditing() {
+        return editing;
+    }
+
+    public void setEditing(String editing) {
+        this.editing = editing;
     }
 }

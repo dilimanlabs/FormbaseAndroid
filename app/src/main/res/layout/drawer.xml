@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/drawer"
     android:layout_gravity="start"
-    android:background="@android:color/white"
+    android:background="@color/white"
     android:layout_width="320dp"
     android:layout_height="match_parent">
 
@@ -56,24 +56,12 @@
 
         <LinearLayout
             android:gravity="left|center_vertical"
-            android:orientation="horizontal"
-            android:id="@+id/nav_explore"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
+            android:orientation="vertical"
+            android:id="@+id/projects"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
             android:layout_width="match_parent"
-            android:layout_height="48dp">
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:gravity="left|center_vertical"
-            android:orientation="horizontal"
-            android:id="@+id/nav_social"
-            android:paddingLeft="16dp"
-            android:paddingRight="16dp"
-            android:layout_width="match_parent"
-            android:layout_height="48dp">
-
+            android:layout_height="wrap_content">
 
         </LinearLayout>
 
@@ -101,9 +89,14 @@
         <Button
             android:id="@+id/logout"
             android:gravity="left|center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Logout" />
+            android:textColor="@color/white"
+            android:background="@android:color/holo_orange_light"
+            android:text="Logout"
+            />
 
     </LinearLayout>
 </ScrollView>

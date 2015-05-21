@@ -1,12 +1,18 @@
 package com.dilimanlabs.formbase;
 
 import android.app.Application;
+import android.widget.Button;
 import android.widget.LinearLayout;
 
 import com.activeandroid.ActiveAndroid;
+import com.dilimanlabs.formbase.model.AnswersForApproval;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by user on 3/5/2015.
@@ -18,13 +24,17 @@ public class FormBase extends Application {
     public static boolean isCaptured;
     public static Deque<LinearLayout> viewDeque = new ArrayDeque<>();
     public static Deque<String> labelDeque = new ArrayDeque<>();
+    public static  List<AnswersForApproval> answersForApprovalListForViewing = new ArrayList<>();
+    public static List<Button> buttonList = new ArrayList<>();
+    public static Map<Button, String> buttonStringMap = new HashMap<>();
+    public static String BIN = "";
+    public static String FORM;
     private static FormBase formbaseSingleton;
 
     @Override
     public void onCreate() {
         super.onCreate();
         ActiveAndroid.initialize(this);
-
         formbaseSingleton = this;
     }
 

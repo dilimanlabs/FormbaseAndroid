@@ -1,7 +1,5 @@
 package com.dilimanlabs.formbase.model;
 
-import android.util.Log;
-
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
@@ -36,6 +34,9 @@ public class Form extends Model {
 
     @Column(name = "Deleted")
     public String deleted;
+
+    @Column(name = "Starting")
+    public String starting;
 
     public String getPublished() {
         return published;
@@ -93,6 +94,14 @@ public class Form extends Model {
         this.name = name;
     }
 
+    public String getStarting() {
+        return starting;
+    }
+
+    public void setStarting(String starting) {
+        this.starting = starting;
+    }
+
     public static Form getJsonString (String formName){
         return new Select()
                 .from(Form.class)
@@ -100,14 +109,14 @@ public class Form extends Model {
                 .executeSingle();
     }
 
-    public static synchronized Form insertData(String url, String created_by, String category, String content, String name){
+    public static synchronized Form insertData(String url, String created_by, String category, String content, String name, String starting){
         Form form = new Form();
         form.setUrl(url);
         form.setCreated_by(created_by);
         form.setCategory(category);
-        Log.e("Category", category);
         form.setContent(content);
         form.setName(name);
+        form.setStarting(starting);
         form.save();
         return form;
     }

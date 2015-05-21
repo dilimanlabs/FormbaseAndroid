@@ -2,6 +2,7 @@ package com.dilimanlabs.formbase.authentication;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -21,11 +22,14 @@ import com.dilimanlabs.formbase.model.Category;
 import com.dilimanlabs.formbase.model.CurrentUser;
 import com.dilimanlabs.formbase.model.Form;
 import com.dilimanlabs.formbase.model.Photos;
+import com.dilimanlabs.formbase.model.Projects;
 import com.dilimanlabs.formbase.objects.CategoryObject;
 import com.dilimanlabs.formbase.objects.CategoryWrapper;
 import com.dilimanlabs.formbase.objects.CurrentUserWrapper;
 import com.dilimanlabs.formbase.objects.FormObject;
 import com.dilimanlabs.formbase.objects.FormObjectWrapper;
+import com.dilimanlabs.formbase.objects.Project;
+import com.dilimanlabs.formbase.objects.ProjectsWrapper;
 import com.dilimanlabs.formbase.objects.UserInfo;
 import com.google.gson.Gson;
 
@@ -96,6 +100,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
         final String userPass = password.getText().toString();
 
         new AsyncTask<String, Void, Intent>() {
+            ProgressDialog dialog;
 
             @Override
             protected Intent doInBackground(String... params) {
@@ -114,8 +119,10 @@ public class AuthenticatorActivity extends ActionBarActivity {
                 }
                 if(authtoken != null){
                     getCurrentUserInfo();
+                    getAllProjects();
                     getCategory();
-                    getForms();
+                    getFormsTrue();
+                    getFormsFalse();
                 }
                 Log.e("done acquiring","");
                 final Intent res = new Intent();
@@ -129,9 +136,22 @@ public class AuthenticatorActivity extends ActionBarActivity {
                 if (intent.hasExtra(KEY_ERROR_MESSAGE)) {
                     Toast.makeText(getBaseContext(), intent.getStringExtra(KEY_ERROR_MESSAGE), Toast.LENGTH_SHORT).show();
                 } else {
+                    if (dialog.isShowing()) {
+                        dialog.dismiss();
+                    }
                     Log.e("finishing","");
                     finishLogin(intent);
                 }
+            }
+            @Override
+            protected void onPreExecute(){
+                super.onPreExecute();
+                dialog = new ProgressDialog(AuthenticatorActivity.this);
+                dialog.setMessage("Logging in...");
+                dialog.setIndeterminate(false);
+                dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                dialog.setCancelable(true);
+                dialog.show();
             }
         }.execute();
     }
@@ -156,7 +176,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
         finish();
     }
 
-    protected String getForms()
+    protected String getFormsTrue()
     {
         HttpURLConnection connection;
         OutputStreamWriter request = null;
@@ -166,7 +186,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
         try
         {
-            url = new URL(DataCenter.GLOBAL_URL+"formbases/?format=json");
+            url = new URL(DataCenter.GLOBAL_URL+"formbases/?starting=True");
             connection = (HttpURLConnection) url.openConnection();
             Log.e("get Forms token", authtoken);
             connection.setRequestMethod("GET");
@@ -185,6 +205,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
             response = sb.toString();
             response = "{\"formObjectList\":"+response + "}";
             formObjectWrapper = gson.fromJson(response, FormObjectWrapper.class);
+            Log.e("Form True Count", ""+formObjectWrapper.getFormObjectList().size());
             for(FormObject formObject : formObjectWrapper.getFormObjectList()){
                 Log.e("Form Content", formObject.getContent());
                 String cat =
@@ -197,7 +218,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
                     cat = Category.getCategoryNameByURL(cat);
                 }
 
-                Form.insertData(formObject.getUrl(), formObject.getCreated_by(), cat, formObject.getContent(), formObject.getName());
+                Form.insertData(formObject.getUrl(), formObject.getCreated_by(), cat, formObject.getContent(), formObject.getName(), "true");
             }
             Log.e("Response", response);
             isr.close();
@@ -219,56 +240,70 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
     }
 
-    private class GetForms extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            if(Form.countTable() <= 0){
-                Log.e("Downloading Forms",".....");
-                getForms();
+    protected String getFormsFalse()
+    {
+        HttpURLConnection connection;
+        OutputStreamWriter request = null;
+
+        URL url = null;
+        String response = null;
+
+        try
+        {
+            url = new URL(DataCenter.GLOBAL_URL+"formbases/?starting=False");
+            connection = (HttpURLConnection) url.openConnection();
+            Log.e("get Forms token", authtoken);
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", "Token " +authtoken.trim());
+            Log.e(" header", connection.getRequestProperties().get("Authorization").toString());
+
+            Log.e("response code","" + connection.getResponseCode());
+            String line = "";
+            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
+            BufferedReader reader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            while ((line = reader.readLine()) != null)
+            {
+                sb.append(line + "\n");
             }
-            return null;
+            response = sb.toString();
+            response = "{\"formObjectList\":"+response + "}";
+            formObjectWrapper = gson.fromJson(response, FormObjectWrapper.class);
+            Log.e("Form False Count", ""+formObjectWrapper.getFormObjectList().size());
+            for(FormObject formObject : formObjectWrapper.getFormObjectList()){
+                Log.e("Form Content", formObject.getContent());
+                String cat =
+                        formObject.getCategory();
+                Log.e("Category", ""+cat);
+                if (cat==null){
+                    cat = "Uncategorized";
+                }
+                else{
+                    cat = Category.getCategoryNameByURL(cat);
+                }
+
+                Form.insertData(formObject.getUrl(), formObject.getCreated_by(), cat, formObject.getContent(), formObject.getName(), "false");
+            }
+            Log.e("Response", response);
+            isr.close();
+            reader.close();
+            connection.disconnect();
+            ActiveAndroid.getDatabase().close();
+            return response;
+
+        }
+        catch(MalformedURLException m){
+            Log.e("Malformed", m.getMessage());
+            return "[blank";
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+            return "[blank]";
         }
 
-        @Override
-        protected void onPostExecute(String result) {
-
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
     }
 
-    private class GetCategories extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            if(Category.countTable() <= 0){
-                Log.e("Downloading Categories",".....");
-                getCategory();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            if (categories!="") {
-                categories_retrieved = true;
-            }
-            categories_retrieved = false;
-        }
-
-        @Override
-        protected void onPreExecute() {
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
 
     protected String getCategory()
     {
@@ -306,7 +341,12 @@ public class AuthenticatorActivity extends ActionBarActivity {
                 category.setName(categoryObject.getName());
                 category.setUrl(categoryObject.getUrl());
                 category.setCreated_by(categoryObject.getCreated_by());
-                category.setParent("");
+                if(null == categoryObject.getParent()){
+                    category.setParent("");
+                }
+                else{
+                    category.setParent(categoryObject.getParent());
+                }
                 category.save();
             }
             Log.e("Response", response);
@@ -338,35 +378,6 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
     }
 
-    private class ClearData extends AsyncTask<String, Void, String> {
-
-
-        @Override
-        protected String doInBackground(String... params) {
-            try{
-                clearData();
-            }
-            catch (Exception e){
-            }
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected void onProgressUpdate(Void... values) {
-        }
-    }
-
     protected String getCurrentUserInfo()
     {
         HttpURLConnection connection;
@@ -377,7 +388,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
         try
         {
-            url = new URL(DataCenter.GLOBAL_URL+"users/?format=json");
+            url = new URL(DataCenter.GLOBAL_URL+"users/?current=True");
             connection = (HttpURLConnection) url.openConnection();
             Log.e("token", authtoken);
             connection.setRequestMethod("GET");
@@ -404,6 +415,62 @@ public class AuthenticatorActivity extends ActionBarActivity {
             }
             Log.e("appended", response);
             Log.e("Response", response);
+            isr.close();
+            reader.close();
+            connection.disconnect();
+            return response;
+
+        }
+        catch(MalformedURLException m){
+            Log.e("Malformed", m.getMessage());
+            return "[blank";
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+            return "[blank]";
+        }
+
+    }
+
+    protected String getAllProjects()
+    {
+        HttpURLConnection connection;
+        OutputStreamWriter request = null;
+
+        URL url = null;
+        String response = null;
+
+        try
+        {
+            url = new URL(DataCenter.GLOBAL_URL+"bins/?format=json");
+            connection = (HttpURLConnection) url.openConnection();
+            Log.e("token", authtoken);
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", "Token " + authtoken);
+            Log.e(" header", connection.getRequestProperties().get("Authorization").toString());
+            Log.e("Projects", ""+connection.getResponseCode());
+            String line = "";
+            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
+            BufferedReader reader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            while ((line = reader.readLine()) != null)
+            {
+                sb.append(line + "\n");
+            }
+            response = sb.toString();
+            response = "{\"projectList\":"+response + "}";
+            ProjectsWrapper projectsWrapper = gson.fromJson(response, ProjectsWrapper.class);
+            for(Project project : projectsWrapper.getProjectList()){
+                Projects projects = new Projects();
+                projects.setUrl(project.getUrl());
+                projects.setName(project.getName());
+                projects.setCreated_by(project.getCreated_by());
+                projects.setOrganizational_group(project.getOrganizational_group());
+                projects.save();
+            }
+            Log.e("Response", response);
+
             isr.close();
             reader.close();
             connection.disconnect();

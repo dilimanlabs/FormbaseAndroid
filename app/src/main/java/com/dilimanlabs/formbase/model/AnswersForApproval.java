@@ -32,6 +32,8 @@ public class AnswersForApproval extends Model {
     String modified_by;
     @Column(name="Fulfilled")
     String fulfilled;
+    @Column(name="Editing")
+    String editing;
 
     public String getUrl() {
         return url;
@@ -105,7 +107,15 @@ public class AnswersForApproval extends Model {
         this.fulfilled = fulfilled;
     }
 
-    public static void insertData(List<JsonAnswer> jsonAnswerList){
+    public String getEditing() {
+        return editing;
+    }
+
+    public void setEditing(String editing) {
+        this.editing = editing;
+    }
+
+    public static void insertData(List<JsonAnswer> jsonAnswerList, String editing){
         for(JsonAnswer jsonAnswer : jsonAnswerList){
             AnswersForApproval answersForApproval = new AnswersForApproval();
             answersForApproval.setAnswer(jsonAnswer.getAnswer());
@@ -117,6 +127,7 @@ public class AnswersForApproval extends Model {
             answersForApproval.setUrl(jsonAnswer.getUrl());
             answersForApproval.setFulfilled(jsonAnswer.getFulfilled());
             answersForApproval.setModified_by(jsonAnswer.getModified_by());
+            answersForApproval.setEditing(editing);
             answersForApproval.save();
         }
     }

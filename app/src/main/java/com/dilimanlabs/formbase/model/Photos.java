@@ -52,13 +52,14 @@ public class Photos extends Model {
         photos.save();
     }
 
-    public synchronized static void insertPhoto(String answer_id, String path){
+    public synchronized static boolean insertPhoto(String answer_id, String path){
         Log.e("Photo", "Photo Inserted");
         Photos photos = new Photos();
         photos.setAnswer_id(answer_id);
         photos.setPath(path);
         photos.setPhoto_url(null);
         photos.save();
+        return true;
     }
     public static String getPhotoPath(String answer_id){
         Photos photos = new Select().from(Photos.class).where("Answer_Id = ?", answer_id).executeSingle();

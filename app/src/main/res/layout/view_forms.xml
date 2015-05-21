@@ -14,7 +14,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:animateLayoutChanges="true"
-            android:background="@android:color/white"
+            android:background="@color/white"
             android:orientation="vertical"
             >
 
@@ -29,6 +29,23 @@
             <LinearLayout
                 android:orientation="vertical"
                 android:id="@+id/layoutForms"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:padding="10dp"
+                />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sub Category"
+                android:layout_marginTop="20dp"
+                android:padding="5dp"
+                />
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:id="@+id/subcategoryForms"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"

@@ -14,10 +14,15 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:animateLayoutChanges="true"
-            android:background="@android:color/white"
+            android:background="@color/white"
             android:orientation="vertical"
             >
-
+            <TextView
+                android:id="@+id/note"
+                android:text="Note: Please select submission bin before adding new form."
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"/>
             <Button
                 android:id="@+id/addButton"
                 android:layout_width="match_parent"
@@ -41,16 +46,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:visibility="gone"
                 android:padding="10dp"
-                />
-
-            <Button
-                android:id="@+id/retrieve"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Retrieve Forms"
-                android:layout_marginTop="20dp"
-                android:padding="5dp"
                 />
 
             <TextView
@@ -69,8 +66,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:visibility="gone"
-                android:padding="10dp"
-                />
+                android:padding="10dp"/>
 
         </LinearLayout>
     </ScrollView>

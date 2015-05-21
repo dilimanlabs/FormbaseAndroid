@@ -13,6 +13,7 @@ public class FormObject {
     String previous_version;
     String published;
     String deleted;
+    String starting;
 
     public String getName() {
         return name;
@@ -84,5 +85,13 @@ public class FormObject {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getStarting() {
+        return starting;
+    }
+
+    public void setStarting(String starting) {
+        this.starting = starting;
     }
 }

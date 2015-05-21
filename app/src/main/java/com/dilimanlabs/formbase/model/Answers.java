@@ -38,6 +38,9 @@ public class Answers extends Model {
     @Column(name = "Formbase")
     public String formbase;
 
+    @Column(name = "Editing")
+    public String editing;
+
     public String getState() {
         return state;
     }
@@ -102,6 +105,14 @@ public class Answers extends Model {
         this.formbase = formbase;
     }
 
+    public String getEditing() {
+        return editing;
+    }
+
+    public void setEditing(String editing) {
+        this.editing = editing;
+    }
+
     public static Answers getFormByLocal_ID(String name){
         return new Select().from(Answers.class).where("Local_ID = ?", name).executeSingle();
     }
@@ -117,7 +128,7 @@ public class Answers extends Model {
         answers.save();
     }
 
-    public synchronized static void insertAnswer(Form fo, String formName, String content){
+    public synchronized static boolean insertAnswer(Form fo, String formName, String content){
         Answers answers = new Answers();
         answers.setCategory(fo.getCategory());
         answers.setName(fo.getName());
@@ -128,11 +139,16 @@ public class Answers extends Model {
         answers.setCreated_by(fo.getCreated_by());
         answers.setUrl(null);
         answers.save();
+        return true;
     }
 
 
     public static List<Answers> getAllForms(String category){
         return new Select().from(Answers.class).where("Category = ?", category).execute();
+    }
+
+    public static List<Answers> getFormsByFormName(String name){
+        return new Select().from(Answers.class).where("Name = ? AND State = ?", name, "draft").execute();
     }
 
     public static void deleteData(){
