@@ -2,6 +2,7 @@ package com.dilimanlabs.formbase.model;
 
 import android.util.Log;
 
+import com.activeandroid.ActiveAndroid;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
@@ -50,6 +51,7 @@ public class Photos extends Model {
         Photos photos = new Select().from(Photos.class).where("Answer_Id = ?", answer_id).executeSingle();
         photos.setPhoto_url(url);
         photos.save();
+        ActiveAndroid.getDatabase().close();
     }
 
     public synchronized static boolean insertPhoto(String answer_id, String path){
@@ -59,14 +61,17 @@ public class Photos extends Model {
         photos.setPath(path);
         photos.setPhoto_url(null);
         photos.save();
+        ActiveAndroid.getDatabase().close();
         return true;
     }
     public static String getPhotoPath(String answer_id){
         Photos photos = new Select().from(Photos.class).where("Answer_Id = ?", answer_id).executeSingle();
+        ActiveAndroid.getDatabase().close();
         return photos.getPath();
     }
 
     public static void deleteData(){
         new Delete().from(Photos.class).execute();
+        ActiveAndroid.getDatabase().close();
     }
 }

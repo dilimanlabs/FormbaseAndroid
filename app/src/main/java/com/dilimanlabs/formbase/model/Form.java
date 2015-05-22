@@ -1,5 +1,6 @@
 package com.dilimanlabs.formbase.model;
 
+import com.activeandroid.ActiveAndroid;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
@@ -122,26 +123,37 @@ public class Form extends Model {
     }
 
     public static List<Form> getAllForms(){
-        return new Select().from(Form.class).execute();
+        List<Form> formList = new Select().from(Form.class).execute();
+        ActiveAndroid.getDatabase().close();
+        return formList;
     }
 
     public static List<Form> getAllFormsByCategory(String category){
-        return new Select().from(Form.class).where("Category = ?", category).execute();
+        List<Form> formList = new Select().from(Form.class).where("Category = ?", category).execute();
+        ActiveAndroid.getDatabase().close();
+        return formList;
     }
 
     public static List<Form> getAllFormsUncategorized(){
-        return new Select().from(Form.class).where("Category = null").execute();
+        List<Form> formList = new Select().from(Form.class).where("Category = null").execute();
+        ActiveAndroid.getDatabase().close();
+        return formList;
     }
 
     public static Form getFormByName(String name){
-        return new Select().from(Form.class).where("Name = ?", name).executeSingle();
+        Form form = new Select().from(Form.class).where("Name = ?", name).executeSingle();
+        ActiveAndroid.getDatabase().close();
+        return form;
     }
 
     public static int countTable(){
-        return new Select().from(Form.class).execute().size();
+        int size = new Select().from(Form.class).execute().size();
+        ActiveAndroid.getDatabase().close();
+        return size;
     }
 
     public static void deleteData(){
         new Delete().from(Form.class).execute();
+        ActiveAndroid.getDatabase().close();
     }
 }

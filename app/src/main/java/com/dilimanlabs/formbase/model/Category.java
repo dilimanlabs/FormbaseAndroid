@@ -1,5 +1,6 @@
 package com.dilimanlabs.formbase.model;
 
+import com.activeandroid.ActiveAndroid;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
@@ -60,28 +61,44 @@ public class Category extends Model {
     }
 
     public static List<Category> getAllCategories(){
-        return new Select().from(Category.class).execute();
+        List<Category> categoryList = new Select().from(Category.class).execute();
+        ActiveAndroid.getDatabase().close();
+        return categoryList;
     }
 
     public static String getCategoryNameByURL(String url){
         Category category = new Select().from(Category.class).where("URL = ?", url).executeSingle();
+        ActiveAndroid.getDatabase().close();
         return category.getName();
     }
 
     public static List<Category> getAllCategoryByURL(String parent){
-        return new Select().from(Category.class).where("Parent = ?",parent).execute();
+        List<Category> categoryList = new Select().from(Category.class).where("Parent = ?",parent).execute();
+        ActiveAndroid.getDatabase().close();
+        return categoryList;
     }
 
     public static Category getURLByCategoryName(String name){
-        return new Select().from(Category.class).where("Name = ?", name).executeSingle();
+        Category category = new Select().from(Category.class).where("Name = ?", name).executeSingle();
+        ActiveAndroid.getDatabase().close();
+        return category;
+    }
+
+    public static String getParentCategoryByName(String name){
+        Category category = new Select().from(Category.class).where("Name = ?", name).executeSingle();
+        ActiveAndroid.getDatabase().close();
+        return category.getParent();
     }
 
     public static int countTable(){
-        return new Select().from(Category.class).execute().size();
+        int size = new Select().from(Category.class).execute().size();
+        ActiveAndroid.getDatabase().close();
+        return size;
     }
 
     public static void deleteData(){
         new Delete().from(Category.class).execute();
+        ActiveAndroid.getDatabase().close();
     }
 
 

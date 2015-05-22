@@ -1,5 +1,6 @@
 package com.dilimanlabs.formbase.model;
 
+import com.activeandroid.ActiveAndroid;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
@@ -73,18 +74,23 @@ public class CurrentUser extends Model {
         currentUser.setIs_manager(userInfo.getIs_manager());
         currentUser.setIs_staff(userInfo.getIs_staff());
         currentUser.save();
+        ActiveAndroid.getDatabase().close();
     }
 
     public static CurrentUser getCurrentUser(){
         List<CurrentUser> currentUserList = new Select().from(CurrentUser.class).execute();
+        ActiveAndroid.getDatabase().close();
         return currentUserList.get(0);
     }
 
     public static void deleteData(){
         new Delete().from(CurrentUser.class).execute();
+        ActiveAndroid.getDatabase().close();
     }
 
     public static int countTable(){
-        return new Select().from(CurrentUser.class).execute().size();
+        int size = new Select().from(CurrentUser.class).execute().size();
+        ActiveAndroid.getDatabase().close();
+        return size;
     }
 }

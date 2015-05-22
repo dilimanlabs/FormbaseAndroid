@@ -15,6 +15,7 @@ public class JsonAnswer {
     String modified_by;
     String fulfilled;
     String editing;
+    String submission_bin;
 
 
     public String getUrl() {
@@ -95,5 +96,13 @@ public class JsonAnswer {
 
     public void setEditing(String editing) {
         this.editing = editing;
+    }
+
+    public String getSubmission_bin() {
+        return submission_bin;
+    }
+
+    public void setSubmission_bin(String submission_bin) {
+        this.submission_bin = submission_bin;
     }
 }

@@ -1,5 +1,6 @@
 package com.dilimanlabs.formbase.model;
 
+import com.activeandroid.ActiveAndroid;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
@@ -54,10 +55,14 @@ public class Projects extends Model {
     }
 
     public static List<Projects> getAllProjects(){
-        return new Select().from(Projects.class).execute();
+        List<Projects> projectsList = new Select().from(Projects.class).execute();
+        ActiveAndroid.getDatabase().close();
+        return projectsList;
     }
 
     public static int countTable(){
-        return new Select().from(Projects.class).execute().size();
+        int size = new Select().from(Projects.class).execute().size();
+        ActiveAndroid.getDatabase().close();
+        return size;
     }
 }

@@ -140,6 +140,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
                         dialog.dismiss();
                     }
                     Log.e("finishing","");
+                    ActiveAndroid.getDatabase().close();
                     finishLogin(intent);
                 }
             }

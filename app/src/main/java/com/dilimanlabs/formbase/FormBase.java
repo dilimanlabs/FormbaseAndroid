@@ -28,6 +28,7 @@ public class FormBase extends Application {
     public static List<Button> buttonList = new ArrayList<>();
     public static Map<Button, String> buttonStringMap = new HashMap<>();
     public static String BIN = "";
+    public static String SUBMISSION_BIN = "";
     public static String FORM;
     private static FormBase formbaseSingleton;
 

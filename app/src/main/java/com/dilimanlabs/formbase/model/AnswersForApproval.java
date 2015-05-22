@@ -1,5 +1,6 @@
 package com.dilimanlabs.formbase.model;
 
+import com.activeandroid.ActiveAndroid;
 import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
@@ -130,25 +131,35 @@ public class AnswersForApproval extends Model {
             answersForApproval.setEditing(editing);
             answersForApproval.save();
         }
+        ActiveAndroid.getDatabase().close();
     }
 
     public static int countTable(){
-        return new Select().from(AnswersForApproval.class).execute().size();
+        int size = new Select().from(AnswersForApproval.class).execute().size();
+        ActiveAndroid.getDatabase().close();
+        return size;
     }
 
     public static void deleteData(){
         new Delete().from(AnswersForApproval.class).execute();
+        ActiveAndroid.getDatabase().close();
     }
 
     public static AnswersForApproval getAnswersForApprovalByCreatedBy(String created_by){
-        return new Select().from(AnswersForApproval.class).where("Created_By = ?", created_by).executeSingle();
+        AnswersForApproval answersForApproval = new Select().from(AnswersForApproval.class).where("Created_By = ?", created_by).executeSingle();
+        ActiveAndroid.getDatabase().close();
+        return answersForApproval;
     }
 
     public static AnswersForApproval getAnswersForApprovalByURL(String url){
-        return new Select().from(AnswersForApproval.class).where("URL = ?", url).executeSingle();
+        AnswersForApproval answersForApproval = new Select().from(AnswersForApproval.class).where("URL = ?", url).executeSingle();
+        ActiveAndroid.getDatabase().close();
+        return answersForApproval;
     }
 
     public static List<AnswersForApproval> getAllAnswersForApproval(){
-        return new Select().from(AnswersForApproval.class).execute();
+        List<AnswersForApproval> answersForApprovalList = new Select().from(AnswersForApproval.class).execute();
+        ActiveAndroid.getDatabase().close();
+        return answersForApprovalList;
     }
 }
