@@ -28,7 +28,7 @@ public class DataCenter {
     public static List<String> repeaterQuestionNameList = new ArrayList<>();
     public static Map<String, List> questionListMap = new HashMap<>();
     public static boolean isLogin = false;
-    public static final String GLOBAL_URL = "http://192.168.0.7/";
+    public static final String GLOBAL_URL = "http://52.11.161.155/";
     public static Map<String,EditText> editTextMap = new HashMap<>();
     public static Map<String, ToggleButton> toggleButtonMap = new HashMap<>();
     public static Map<Button, String> buttonMap = new HashMap<>();

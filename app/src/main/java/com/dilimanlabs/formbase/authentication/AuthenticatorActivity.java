@@ -3,7 +3,10 @@ package com.dilimanlabs.formbase.authentication;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
@@ -83,7 +86,6 @@ public class AuthenticatorActivity extends ActionBarActivity {
         login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                login.setClickable(false);
                 clearData();
                 submit();
             }
@@ -96,65 +98,82 @@ public class AuthenticatorActivity extends ActionBarActivity {
 
     public void submit() {
 
-        final String userName = username.getText().toString();
-        final String userPass = password.getText().toString();
+        if(isNetworkAvailable()){
+            final String userName = username.getText().toString();
+            final String userPass = password.getText().toString();
+            if(isUsernameAndPasswordNotEmptyAndNull(userName, userPass)){
+                new AsyncTask<String, Void, Intent>() {
+                    ProgressDialog dialog;
 
-        new AsyncTask<String, Void, Intent>() {
-            ProgressDialog dialog;
-
-            @Override
-            protected Intent doInBackground(String... params) {
-                Bundle data = new Bundle();
-                try {
-                    authtoken =  new FormbaseServerAuthenticate().userSignIn(userName, userPass, mAuthTokenType);
-                    data.putString(AccountManager.KEY_ACCOUNT_NAME, userName);
-                    data.putString(AccountManager.KEY_ACCOUNT_TYPE, mAccountType);
-                    data.putString(AccountManager.KEY_AUTHTOKEN, authtoken);
-                    data.putString(PARAM_USER_PASS, userPass);
-                } catch (Exception e) {
-                    Log.e("Im login token", ""+authtoken);
-                    e.printStackTrace();
-                    Log.e("Connection Status", "Cant connect to server");
-                    data.putString(KEY_ERROR_MESSAGE, e.getMessage());
-                }
-                if(authtoken != null){
-                    getCurrentUserInfo();
-                    getAllProjects();
-                    getCategory();
-                    getFormsTrue();
-                    getFormsFalse();
-                }
-                Log.e("done acquiring","");
-                final Intent res = new Intent();
-                res.putExtras(data);
-                Log.e("returning","");
-                return res;
-            }
-
-            @Override
-            protected void onPostExecute(Intent intent) {
-                if (intent.hasExtra(KEY_ERROR_MESSAGE)) {
-                    Toast.makeText(getBaseContext(), intent.getStringExtra(KEY_ERROR_MESSAGE), Toast.LENGTH_SHORT).show();
-                } else {
-                    if (dialog.isShowing()) {
-                        dialog.dismiss();
+                    @Override
+                    protected Intent doInBackground(String... params) {
+                        Bundle data = new Bundle();
+                        try {
+                            authtoken =  new FormbaseServerAuthenticate().userSignIn(userName, userPass, mAuthTokenType);
+                            if(authtoken.equals("400")){
+                                Toast.makeText(AuthenticatorActivity.this, "Username and password does not match", Toast.LENGTH_LONG).show();
+                            }
+                            else{
+                                data.putString(AccountManager.KEY_ACCOUNT_NAME, userName);
+                                data.putString(AccountManager.KEY_ACCOUNT_TYPE, mAccountType);
+                                data.putString(AccountManager.KEY_AUTHTOKEN, authtoken);
+                                data.putString(PARAM_USER_PASS, userPass);
+                            }
+                        } catch (Exception e) {
+                            Log.e("Im login token", ""+authtoken);
+                            e.printStackTrace();
+                            Log.e("Connection Status", "Cant connect to server");
+                            data.putString(KEY_ERROR_MESSAGE, e.getMessage());
+                        }
+                        if(authtoken != null && !authtoken.equals("400")){
+                            getCurrentUserInfo();
+                            getAllProjects();
+                            getCategory();
+                            getFormsTrue();
+                            getFormsFalse();
+                        }
+                        Log.e("done acquiring","");
+                        final Intent res = new Intent();
+                        res.putExtras(data);
+                        Log.e("returning","");
+                        return res;
                     }
-                    Log.e("finishing","");
-                    ActiveAndroid.getDatabase().close();
-                    finishLogin(intent);
-                }
+
+                    @Override
+                    protected void onPostExecute(Intent intent) {
+                        if (intent.hasExtra(KEY_ERROR_MESSAGE)) {
+                            Toast.makeText(AuthenticatorActivity.this, "Username and password does not match", Toast.LENGTH_LONG).show();
+                            if (dialog.isShowing()) {
+                                dialog.dismiss();
+                            }
+                        } else {
+                            if (dialog.isShowing()) {
+                                dialog.dismiss();
+                            }
+                            Log.e("finishing","");
+                            ActiveAndroid.getDatabase().close();
+                            finishLogin(intent);
+                        }
+                    }
+                    @Override
+                    protected void onPreExecute(){
+                        super.onPreExecute();
+                        dialog = new ProgressDialog(AuthenticatorActivity.this);
+                        dialog.setMessage("Logging in...");
+                        dialog.setIndeterminate(false);
+                        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                        dialog.setCancelable(true);
+                        dialog.show();
+                    }
+                }.execute();
             }
-            @Override
-            protected void onPreExecute(){
-                super.onPreExecute();
-                dialog = new ProgressDialog(AuthenticatorActivity.this);
-                dialog.setMessage("Logging in...");
-                dialog.setIndeterminate(false);
-                dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                dialog.setCancelable(true);
-                dialog.show();
+            else{
+                Toast.makeText(AuthenticatorActivity.this, "Username or Password cannot be empty.", Toast.LENGTH_LONG).show();
             }
-        }.execute();
+        }
+        else{
+            Toast.makeText(AuthenticatorActivity.this, "Please connect the device to the internet to login.", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void finishLogin(Intent intent) {
@@ -488,5 +507,20 @@ public class AuthenticatorActivity extends ActionBarActivity {
             return "[blank]";
         }
 
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    public boolean isUsernameAndPasswordNotEmptyAndNull(String username, String password){
+        if(null != username && null != password && !username.equals("") && !password.equals("")){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

@@ -26,15 +26,15 @@ public class FormbaseServerAuthenticate {
     private CategoryWrapper categoryWrapper;
 
 
-    public static String userSignIn(final String username, final String password, final String token){
-         new_token = tryLogin(username, password);
-         DataCenter.TOKEN = new_token.getToken();
-         return new_token.getToken();
+    public static String userSignIn(final String username, final String password, String token){
+         token = tryLogin(username, password);
+         DataCenter.TOKEN = token;
+         return token;
     }
 
 
 
-    private static Token tryLogin(String mUsername, String mPassword)
+    private static String tryLogin(String mUsername, String mPassword)
     {
         HttpURLConnection connection;
         OutputStreamWriter request = null;
@@ -50,9 +50,6 @@ public class FormbaseServerAuthenticate {
             connection.setDoOutput(true);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.setRequestMethod("POST");
-
-
-
             request = new OutputStreamWriter(connection.getOutputStream());
             request.write(parameters);
             request.flush();
@@ -61,20 +58,25 @@ public class FormbaseServerAuthenticate {
             Log.e("Error", ""+connection.getResponseCode());
 
             String line = "";
-            InputStreamReader isr = new InputStreamReader(connection.getInputStream());
-            BufferedReader reader = new BufferedReader(isr);
-            StringBuilder sb = new StringBuilder();
-            while ((line = reader.readLine()) != null)
-            {
-                sb.append(line + "\n");
+            if(connection.getResponseCode() == 400){
+                return "400";
             }
-            response = sb.toString();
-            tokenObject = gson.fromJson(response, Token.class);
-            Log.e("Response: ", tokenObject.getToken());
-            isr.close();
-            reader.close();
-            connection.disconnect();
-            return tokenObject;
+            else{
+                InputStreamReader isr = new InputStreamReader(connection.getInputStream());
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                response = sb.toString();
+                tokenObject = gson.fromJson(response, Token.class);
+                Log.e("Response: ", tokenObject.getToken());
+                isr.close();
+                reader.close();
+                connection.disconnect();
+                return tokenObject.getToken();
+            }
 
         }
         catch(MalformedURLException m){

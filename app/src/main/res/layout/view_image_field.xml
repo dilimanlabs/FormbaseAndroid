@@ -23,12 +23,18 @@
             android:padding="5dp"
             />
 
+        <ImageView
+            android:id="@+id/cameraButton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_action_camera"/>
+
         <LinearLayout
             android:id="@+id/image"
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Question Name"
             android:layout_marginTop="20dp"
             android:visibility="gone"
             android:padding="10dp">

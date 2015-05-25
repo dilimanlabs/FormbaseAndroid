@@ -15,6 +15,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -25,7 +27,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
@@ -44,7 +45,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import com.activeandroid.ActiveAndroid;
 import com.dilimanlabs.formbase.adapater.AnswerListViewAdapter;
 import com.dilimanlabs.formbase.authentication.AccountGeneral;
 import com.dilimanlabs.formbase.model.Answers;
@@ -124,12 +124,6 @@ import java.util.Random;
 
 public class MainActivity extends ActionBarActivity {
     private Gson gson;
-    private boolean loading = true;
-    int pastVisiblesItems, visibleItemCount, totalItemCount;
-    private String categories;
-    private boolean categories_retrieved;
-    private File file;
-    private RecyclerView recyclerView;
     String result;
     private Button currentButton;
     private LinearLayoutManager mLayoutManager;
@@ -279,7 +273,6 @@ public class MainActivity extends ActionBarActivity {
         month = calendar.get(Calendar.MONTH);
         day = calendar.get(Calendar.DAY_OF_MONTH);
         context = getApplicationContext();
-        file = new File(context.getExternalCacheDir(),"testJson.json");
         previousID = new ArrayList<>();
         current = new LinearLayout(this);
         label = (TextView) toolbar.findViewById(R.id.label);
@@ -313,7 +306,6 @@ public class MainActivity extends ActionBarActivity {
         accountManager = AccountManager.get(this);
         accounts = accountManager.getAccountsByType(AccountGeneral.ACCOUNT_TYPE);
         accountManager.removeAccount(accounts[0], null, null);
-        ActiveAndroid.getDatabase().close();
         final Intent intent = new Intent(MainActivity.this, MainActivity.class);
         startActivity(intent);
     }
@@ -1291,11 +1283,17 @@ public class MainActivity extends ActionBarActivity {
     public QuestionImageFieldView createQuestionImageFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId){
         QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(this);
         TextView name = (TextView)questionImageFieldView.findViewById(R.id.questionName);
+        LinearLayout imageLayout = (LinearLayout)questionImageFieldView.findViewById(R.id.image);
+        ImageView cameraButton = (ImageView)questionImageFieldView.findViewById(R.id.cameraButton);
         name.setText(questionName);
-        questionImageFieldView.setOnClickListener(new View.OnClickListener() {
+        cameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 dispatchTakePictureIntent();
+                DataCenter.saved = true;
+                DataCenter.questionsLayout = questionsLayout;
+                DataCenter.currentPath = mCurrentPhotoPath;
+                FormBase.isCaptured = true;
                 galleryAddPic();
             }
         });
@@ -1673,10 +1671,15 @@ public class MainActivity extends ActionBarActivity {
                         Log.e("Json", json);
                         jsonAnswer = json;
                         DataCenter.answers = answer;
-                        new SendAnswer(formNameString).execute();
-                        Toast.makeText(MainActivity.this, "Form submitted successfully.", Toast.LENGTH_SHORT).show();
-                        backView(current, FormBase.viewDeque.removeLast());
-                        capture.setVisibility(View.GONE);
+                        if(isNetworkAvailable()){
+                            new SendAnswer(formNameString).execute();
+                            Toast.makeText(MainActivity.this, "Form submitted successfully.", Toast.LENGTH_SHORT).show();
+                            backView(current, FormBase.viewDeque.removeLast());
+                            capture.setVisibility(View.GONE);
+                        }
+                        else{
+                            Toast.makeText(MainActivity.this, "Please connect the device to the internet before submitting your answer.", Toast.LENGTH_LONG).show();
+                        }
                     }
             }
             });
@@ -1783,7 +1786,13 @@ public class MainActivity extends ActionBarActivity {
                 @Override
                 public void onClick(View v) {
                     Log.e("Clicked", "Clicked");
-                    new SendApproveAnswer(url, questionsLayout).execute();
+                    if(isNetworkAvailable()){
+                        new SendApproveAnswer(url, questionsLayout).execute();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "Please connect the device to the internet to send approvals.", Toast.LENGTH_LONG).show();
+                    }
+
                 }
             });
             questionsLayout.addView(approve);
@@ -2219,7 +2228,7 @@ public class MainActivity extends ActionBarActivity {
         }
         catch(IOException e)
         {
-            Toast.makeText(MainActivity.this, "Answer sumbission failed please check your network connection", Toast.LENGTH_LONG);
+            Toast.makeText(MainActivity.this, "Answer sumbission failed please check your network connection", Toast.LENGTH_LONG).show();
             e.printStackTrace();
             Log.e("Error", e.toString());
 
@@ -2364,7 +2373,7 @@ public class MainActivity extends ActionBarActivity {
         for(Map.Entry<String, RadioGroup> entry : radioGroupMap.entrySet()){
             if(!String.valueOf(entry.getValue().getCheckedRadioButtonId()).equals(null) && !String.valueOf(entry.getValue().getCheckedRadioButtonId()).equals("") ){
                 entry.getValue().requestFocus();
-                Toast.makeText(MainActivity.this, "Radiobutton cannot be empty", Toast.LENGTH_SHORT);
+                Toast.makeText(MainActivity.this, "Radiobutton cannot be empty", Toast.LENGTH_SHORT).show();
                 return false;
             }
         }
@@ -2503,7 +2512,9 @@ public class MainActivity extends ActionBarActivity {
                                 Log.e("BIN",FormBase.BIN);
                                 if(FormBase.BIN.equals("")){
                                     addButton.setVisibility(View.GONE);
-                                    note.setVisibility(View.VISIBLE);
+                                    if(!Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
+                                        note.setVisibility(View.VISIBLE);
+                                    }
                                 }
                                 else if(!Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting())){
                                     addButton.setVisibility(View.GONE);
@@ -2605,7 +2616,13 @@ public class MainActivity extends ActionBarActivity {
                     FormBase.FORM = Form.getFormByName(formNameString).getUrl().split("/")[Form.getFormByName(formNameString).getUrl().split("/").length-1];
                     Log.e("Form", FormBase.FORM);
                     formView = (FormView)findViewById(R.id.formView);
-                    new GetAnswers(formView, formNameString).execute();
+                    if(isNetworkAvailable()){
+                        new GetAnswers(formView, formNameString).execute();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                    }
+
                     TextView retrieveFormLabel = (TextView)formView.findViewById(R.id.retrieveFormLabel);
                     final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
                     final Button addButton = (Button) formView.findViewById(R.id.addButton);
@@ -2669,14 +2686,19 @@ public class MainActivity extends ActionBarActivity {
                             }).show();
                         }
                     });
+                    Log.e("Starting", ""+Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting()));
                     if(FormBase.BIN.equals("")){
                         addButton.setVisibility(View.GONE);
-                        note.setVisibility(View.VISIBLE);
+                        if(!Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
+                            note.setVisibility(View.VISIBLE);
+                        }
                     }
                     else if(!Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting())){
                         addButton.setVisibility(View.GONE);
                     }
                     else{
+                        addButton.setVisibility(View.VISIBLE);
+                        note.setVisibility(View.GONE);
                         retrieveForms.setVisibility(View.GONE);
                         retrieveFormLabel.setText("Submitted Forms");
                     }
@@ -2880,7 +2902,6 @@ public class MainActivity extends ActionBarActivity {
 
             MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
             entityBuilder.setBoundary(boundary);
-            //entityBuilder.setMode(HttpMultipartMode.);
             entityBuilder.addTextBody("answer", answerURL);
             entityBuilder.setBoundary(boundary);
             entityBuilder.addTextBody("name", name);
@@ -2888,22 +2909,10 @@ public class MainActivity extends ActionBarActivity {
             entityBuilder.addTextBody("url_height", "1");
             entityBuilder.setBoundary(boundary);
             entityBuilder.addTextBody("url_width", "1");
-            //JSONObject json=new JSONObject();
-            //json.put("answer", answerURL);
-            //json.put("name", name);
-            //json.put("url_height", "1");
-            //json.put("url_width", "1");
-
-            //String data = gson.toJson(json);
-
-            //entityBuilder.addTextBody("data",data);
             entityBuilder.setBoundary(boundary);
             if(file != null)
             {
-
                 entityBuilder.addBinaryBody("photo", file, ContentType.create("image/jpg"),name);
-                //ContentBody cbFile = new FileBody(file, "image/jpeg");
-                //entityBuilder.addPart("photo",cbFile);
                 entityBuilder.setBoundary(boundary);
             }
 
@@ -3199,17 +3208,6 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected void onPostExecute(String result) {
-            Log.e("BIN", FormBase.BIN);
-            Button addButton = (Button)formView.findViewById(R.id.addButton);
-            TextView note = (TextView)formView.findViewById(R.id.note);
-            if(!FormBase.BIN.equals("")){
-                addButton.setVisibility(View.VISIBLE);
-                note.setVisibility(View.GONE);
-            }
-            else{
-                addButton.setVisibility(View.GONE);
-                note.setVisibility(View.VISIBLE);
-            }
             LinearLayout retrieveForms = (LinearLayout)formView.findViewById(R.id.retrieveForms);
             retrieveForms.removeAllViews();
             for(AnswersForApproval answersForApproval : AnswersForApproval.getAllAnswersForApproval()){
@@ -3352,27 +3350,6 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private void loadData(int current_page) {
-        List<AnswersForApproval> answersForApprovalList = AnswersForApproval.getAllAnswersForApproval();
-        for (int i = ival; i <= loadLimit; i++) {
-            AnswersForApproval answersForApproval = answersForApprovalList.get(i);
-            FormBase.answersForApprovalListForViewing.add(answersForApproval);
-            ival++;
-
-        }
-    }
-
-    private void loadMoreData(int current_page) {
-        List<AnswersForApproval> answersForApprovalList = AnswersForApproval.getAllAnswersForApproval();
-//        int loadLimit = ival + 1;
-        for (int i = 0; i < answersForApprovalList.size(); i++) {
-            FormBase.answersForApprovalListForViewing.add(answersForApprovalList.get(i));
-            ival++;
-        }
-
-        answerListViewAdapter.notifyDataSetChanged();
-
-    }
 
     public void createProjectButtons(final Button allProjects){
         Log.e("Creating", "Buttons");
@@ -3393,7 +3370,13 @@ public class MainActivity extends ActionBarActivity {
                 currentButton = allProjects;
                 if(formView != null && formView.getVisibility() != View.GONE){
                     Log.e("All", "Getting answer");
-                    new GetAnswers(formView, label.getText().toString()).execute();
+                    if(isNetworkAvailable()){
+                        new GetAnswers(formView, label.getText().toString()).execute();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                    }
+
                 }
             }
         });
@@ -3423,7 +3406,12 @@ public class MainActivity extends ActionBarActivity {
                     allProjects.setBackgroundColor(context.getResources().getColor(android.R.color.holo_orange_light));
                     if(formView != null && formView.getVisibility() != View.GONE){
                         Log.e("Project", "Getting answer");
-                        new GetAnswers(formView, label.getText().toString()).execute();
+                        if(isNetworkAvailable()){
+                            new GetAnswers(formView, label.getText().toString()).execute();
+                        }
+                        else{
+                            Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
             });
@@ -3441,6 +3429,13 @@ public class MainActivity extends ActionBarActivity {
         mDrawerLayout.closeDrawers();
         back.setVisibility(View.GONE);
         label.setText("Category");
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
 }
