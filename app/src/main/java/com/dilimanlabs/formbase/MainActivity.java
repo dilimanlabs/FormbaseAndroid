@@ -378,6 +378,7 @@ public class MainActivity extends ActionBarActivity {
                         projects.removeAllViews();
                         int count = 0;
                         for(Button button : FormBase.buttonList){
+
                             Log.e("Button", "Button");
                             if(projects.getChildCount() >= 0){
                                 try{
@@ -401,6 +402,9 @@ public class MainActivity extends ActionBarActivity {
 
             }
         initAccounts();
+        if(!FormBase.viewDeque.isEmpty()){
+            mDrawerToggle.setDrawerIndicatorEnabled(false);
+        }
         if(CurrentUser.countTable() > 0){
             email.setText(CurrentUser.getCurrentUser().getEmail());
             username.setText(CurrentUser.getCurrentUser().getUsername());
@@ -504,7 +508,7 @@ public class MainActivity extends ActionBarActivity {
                                     questionMultipleChoice.setName(children.get("name").toString());
                                     questionMultipleChoice.setLevel(Double.parseDouble(children.get("level").toString()));
                                     questionMultipleChoice.setOrder(Double.parseDouble(children.get("order").toString()));
-                                    questionMultipleChoice.setElName(children.get("elName").toString());
+                                    questionMultipleChoice.setElName(child.get("elName").toString());
                                     List<Choices> choicesList = new ArrayList<>();
                                     List choices = (List) children.get("choices");
                                     for (int z = 0; z < choices.size(); z++) {
@@ -515,7 +519,13 @@ public class MainActivity extends ActionBarActivity {
                                     questionMultipleChoice.setChoices(choicesList);
                                     int radioButtonID = DataCenter.radioGroupMap.get(children.get("name").toString()).getCheckedRadioButtonId();
                                     RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(children.get("name").toString()).findViewById(radioButtonID);
-                                    questionMultipleChoice.setAnswer(radioButton.getText().toString());
+                                    Spinner spinner = DataCenter.spinnerMap.get(children.get("name").toString());
+                                    if(choices.size() >= 10){
+                                        questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
+                                    }
+                                    else{
+                                        questionMultipleChoice.setAnswer(radioButton.getText().toString());
+                                    }
                                     objectListChild.add(questionMultipleChoice);
 
                                 } else if (children.get("typeName").equals(basicTextField)) {
@@ -618,6 +628,7 @@ public class MainActivity extends ActionBarActivity {
 
                         }
                         else if(child.get("typeName").equals(multipleChoice)){
+                            Log.e("Question Group", "Question Group");
                             QuestionMultipleChoice questionMultipleChoice = new QuestionMultipleChoice();
                             questionMultipleChoice.setType(child.get("type").toString());
                             questionMultipleChoice.setTypeName(child.get("typeName").toString());
@@ -642,7 +653,6 @@ public class MainActivity extends ActionBarActivity {
                             else{
                                 questionMultipleChoice.setAnswer(radioButton.getText().toString());
                             }
-                            objectList.add(questionMultipleChoice);
                             objectListInner.add(questionMultipleChoice);
                         }
                         else if(child.get("typeName").equals(basicTextField)){
@@ -1269,6 +1279,7 @@ public class MainActivity extends ActionBarActivity {
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionNumberFieldView.findViewById(R.id.questionAnswer);
         EditText answer = new EditText(this);
+        answer.setHint("Type here");
         answer.setInputType(InputType.TYPE_CLASS_NUMBER);
         answer.setLines(1);
         answer.setText(numberAnswer);
@@ -1284,6 +1295,7 @@ public class MainActivity extends ActionBarActivity {
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionBasicTextField.findViewById(R.id.questionAnswer);
         EditText answer = new EditText(this);
+        answer.setHint("Type here");
         questionAnswer.addView(answer);
         answer.setLines(1);
         questionAnswer.setVisibility(View.VISIBLE);
@@ -1467,13 +1479,28 @@ public class MainActivity extends ActionBarActivity {
             if(map.get("typeName").equals(questionGroup)){
                 questionGroupView = new QuestionGroupView(this);
                 FloatingActionButton add = (FloatingActionButton)questionGroupView.findViewById(R.id.add_new);
+                final ImageView expand = (ImageView)questionGroupView.findViewById(R.id.expand);
                 final List childList = (List)map.get("childList");
                 TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
                 questionName.setText(map.get("name").toString());
                 final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
-                questions.setVisibility(View.VISIBLE);
+                expand.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if(questions.getVisibility() == View.VISIBLE){
+                            expand.setImageResource(R.drawable.ic_action_expand);
+                            questions.setVisibility(View.GONE);
+                        }
+                        else{
+                            expand.setImageResource(R.drawable.ic_action_collapse);
+                            questions.setVisibility(View.VISIBLE);
+                        }
+                    }
+                });
                 if(Boolean.parseBoolean(map.get("isRepeating").toString()) == true){
                     add.setVisibility(View.VISIBLE);
+                    expand.setVisibility(View.GONE);
+                    questions.setVisibility(View.VISIBLE);
                     add.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -1491,62 +1518,90 @@ public class MainActivity extends ActionBarActivity {
                         final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
                          if(child.get("typeName").equals(questionGroup)){
                                 final QuestionGroupView questionGroupChild = new QuestionGroupView(this);
-
                                 questions.addView(questionGroupChild);
                         }
                         else if(child.get("typeName").equals(dateField)){
-                            questions.addView(createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), false, null));
+                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionDateFieldView);
+                            questions.addView(questionDateFieldView);
                         }
                         else if(child.get("typeName").equals(imageField)){
-                            questions.addView(createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null));
+                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionImageFieldView);
+                            questions.addView(questionImageFieldView);
                         }
                         else if(child.get("typeName").equals(switchQuestion)){
-                            questions.addView(createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null));
+                            QuestionSwitchView questionSwitchView = createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionSwitchView);
+                            questions.addView(questionSwitchView);
                         }
                         else if(child.get("typeName").equals(numberField)){
-                            questions.addView(createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null));
+                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionNumberFieldView);
+                            questions.addView(questionNumberFieldView);
                         }
                         else if(child.get("typeName").equals(multipleChoice)){
                             List choices = (List)child.get("choices");
-                            questions.addView(createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null));
+                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null);
+                            FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionMultipleChoiceView);
+                            questions.addView(questionMultipleChoiceView);
                         }
                         else if(child.get("typeName").equals(basicTextField)){
-                            questions.addView(createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), false, null));
+                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionBasicTextField);
+                            questions.addView(questionBasicTextField);
                         }
                         else if(child.get("typeName").equals(checkList)){
                             List choices = (List)child.get("choices");
-                            questions.addView(createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null));
+                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null);
+                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionCheckListView);
+                            questions.addView(questionCheckListView);
                         }
 
 
                     }
 
                 }
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionGroupView);
                 questionsLayout.addView(questionGroupView);
 
             }
             else if(map.get("typeName").equals(dateField)){
-                questionsLayout.addView(createQuestionDateField(map.get("typeName").toString(), map.get("name").toString(), false, null));
+                QuestionDateFieldView questionDateFieldView = createQuestionDateField(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionDateFieldView);
+                questionsLayout.addView(questionDateFieldView);
             }
             else if(map.get("typeName").equals(imageField)){
-                questionsLayout.addView(createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null));
+                QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionImageFieldView);
+                questionsLayout.addView(questionImageFieldView);
             }
             else if(map.get("typeName").equals(switchQuestion)){
-                questionsLayout.addView(createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null));
+                QuestionSwitchView questionSwitchView = createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionSwitchView);
+                questionsLayout.addView(questionSwitchView);
             }
             else if(map.get("typeName").equals(numberField)){
-                questionsLayout.addView(createQuestionNumberFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null));
+                QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionNumberFieldView);
+                questionsLayout.addView(questionNumberFieldView);
             }
             else if(map.get("typeName").equals(multipleChoice)){
                 List choices = (List)map.get("choices");
-                questionsLayout.addView(createQuestionMultipleChoiceView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null));
+                QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null);
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionMultipleChoiceView);
+                questionsLayout.addView(questionMultipleChoiceView);
             }
             else if(map.get("typeName").equals(basicTextField)){
-                questionsLayout.addView(createQuestionBasicTextField(map.get("typeName").toString(), map.get("name").toString(), false, null));
+                QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionBasicTextField);
+                questionsLayout.addView(questionBasicTextField);
             }
             else if(map.get("typeName").equals(checkList)){
                 List choices = (List)map.get("choices");
-                questionsLayout.addView(createQuestionCheckListView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null));
+                QuestionCheckListView questionCheckListView = createQuestionCheckListView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null);
+                FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionCheckListView);
+                questionsLayout.addView(questionCheckListView);
 
             }
         }
@@ -1577,8 +1632,12 @@ public class MainActivity extends ActionBarActivity {
                     backView(current, FormBase.viewDeque.removeLast());
                     capture.setVisibility(View.GONE);
                 }
+                else{
+                    Log.e("Please check", "EditText");
+                }
             }
         });
+        Log.e("CardView Size: ", ""+FormBase.stringCardViewHashMap.size());
     }
 
     public void createPreviousForm(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Answers answer, final String formNameString){
@@ -1589,6 +1648,8 @@ public class MainActivity extends ActionBarActivity {
                 questionGroupView = new QuestionGroupView(this);
                 final TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
                 final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
+                ImageView expand = (ImageView) questionGroupView.findViewById(R.id.expand);
+                expand.setVisibility(View.GONE);
                 if(Boolean.parseBoolean(map.get("isRepeating").toString()) == true){
                     questions.setVisibility(View.VISIBLE);
                     questionName.setText(map.get("name").toString());
@@ -1767,21 +1828,74 @@ public class MainActivity extends ActionBarActivity {
             LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
             if(map.get("typeName").equals(questionGroup)){
                 questionGroupView = new QuestionGroupView(this);
-                TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
+                ImageView expand = (ImageView) questionGroupView.findViewById(R.id.expand);
+                expand.setVisibility(View.GONE);
+                final TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
                 final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
-                questions.setVisibility(View.VISIBLE);
-                questionName.setText(map.get("name").toString());
-                Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
-                Log.e("Name: ", " "+map.get("name"));
-                List childList = (List)map.get("questionRepeaterList");
-                for(int x = 0; x<childList.size(); x++){
-                    final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
-                    List children = (List)child.get("repeaterQuestion");
-                    Log.e("Repeater Question", child.get("repeaterQuestion").toString());
-                    for(int y = 0; y<children.size(); y++){
-                        final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) children.get(y);
+                if(Boolean.parseBoolean(map.get("isRepeating").toString()) == true){
+                    questions.setVisibility(View.VISIBLE);
+                    questionName.setText(map.get("name").toString());
+                    Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
+                    Log.e("Name: ", " "+map.get("name"));
+                    List childList = (List)map.get("questionRepeaterList");
+                    for(int x = 0; x<childList.size(); x++){
+                        final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
+                        List children = (List)child.get("repeaterQuestion");
+                        Log.e("Repeater Question", child.get("repeaterQuestion").toString());
+                        LinearLayout.LayoutParams linearLayoutParams = new LinearLayout.LayoutParams((LinearLayout.LayoutParams.MATCH_PARENT),(LinearLayout.LayoutParams.WRAP_CONTENT));
+                        LinearLayout repeaterLayout = new LinearLayout(MainActivity.this);
+                        repeaterLayout.setOrientation(LinearLayout.VERTICAL);
+                        repeaterLayout.setLayoutParams(linearLayoutParams);
+                        TextView numberTextView = new TextView(MainActivity.this);
+                        numberTextView.setTextSize(20);
+                        numberTextView.setText(""+(x+1));
+                        repeaterLayout.addView(numberTextView);
+                        for(int y = 0; y<children.size(); y++){
+
+                            final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) children.get(y);
+                            if(c.get("typeName").equals(questionGroup)){
+                                repeaterLayout.addView(createQuestionGroupViewTop(child, original, questionsLayout));
+                            }
+                            else if(c.get("typeName").equals(dateField)){
+                                repeaterLayout.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                            }
+                            else if(c.get("typeName").equals(imageField)){
+                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                            }
+                            else if(c.get("typeName").equals(switchQuestion)){
+                                repeaterLayout.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                            }
+                            else if(c.get("typeName").equals(numberField)){
+                                repeaterLayout.addView(createQuestionNumberFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                            }
+                            else if(c.get("typeName").equals(multipleChoice)){
+                                List choices = (List)c.get("choices");
+                                repeaterLayout.addView(createQuestionMultipleChoiceViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, c.get("answer").toString()));
+                            }
+                            else if(c.get("typeName").equals(basicTextField)){
+                                repeaterLayout.addView(createQuestionBasicTextFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                            }
+                            else if(c.get("typeName").equals(checkList)){
+                                List choices = (List)c.get("choices");
+                                List answers = (List)c.get("answers");
+                                repeaterLayout.addView(createQuestionCheckListViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, answers));
+                            }
+
+                        }
+                        questions.addView(repeaterLayout);
+
+                    }
+                }
+                else{
+                    questions.setVisibility(View.VISIBLE);
+                    questionName.setText(map.get("name").toString());
+                    Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
+                    Log.e("Name: ", " "+map.get("name"));
+                    List childList = (List)map.get("childList");
+                    for(int y = 0; y<childList.size(); y++){
+                        final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) childList.get(y);
                         if(c.get("typeName").equals(questionGroup)){
-                            questions.addView(createQuestionGroupViewTop(child, original, questionsLayout));
+                            questions.addView(createQuestionGroupViewTop(c, original, questionsLayout));
                         }
                         else if(c.get("typeName").equals(dateField)){
                             questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
@@ -1790,6 +1904,9 @@ public class MainActivity extends ActionBarActivity {
                             questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
                         }
                         else if(c.get("typeName").equals(switchQuestion)){
+                            Log.e("typeName",""+c.get("typeName").toString());
+                            Log.e("Name",""+c.get("name").toString());
+                            Log.e("Answer",""+c.get("answer").toString());
                             questions.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                         }
                         else if(c.get("typeName").equals(numberField)){
@@ -1808,7 +1925,6 @@ public class MainActivity extends ActionBarActivity {
                             questions.addView(createQuestionCheckListViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), choices, answers));
                         }
                     }
-
                 }
                 questionsLayout.addView(questionGroupView);
             }
@@ -2041,18 +2157,16 @@ public class MainActivity extends ActionBarActivity {
                     choicesList.add(c);
                 }
                 questionMultipleChoice.setChoices(choicesList);
-                Log.e("Repeater Id", ""+id);
-                Log.e("RadioGroupSize", ""+DataCenter.radioGroupMap.size());
-                Log.e("RadioGroup", ""+DataCenter.radioGroupMap.size());
-                Log.e("RadioGroup Contains", ""+DataCenter.radioGroupMap.containsKey(id));
-                Log.e("RadioGroup Id", ""+DataCenter.radioGroupMap.get(id).getCheckedRadioButtonId());
-
-                    int radioButtonID = DataCenter.radioGroupMap.get(id).getCheckedRadioButtonId();
-                    RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(id).findViewById(radioButtonID);
+                if(choices.size() >= 10){
+                    Spinner spinner = DataCenter.spinnerMap.get(children.get("name").toString());
+                    questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
+                }
+                else{
+                    int radioButtonID = DataCenter.radioGroupMap.get(children.get("name").toString()).getCheckedRadioButtonId();
+                    RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(children.get("name").toString()).findViewById(radioButtonID);
                     questionMultipleChoice.setAnswer(radioButton.getText().toString());
-                    questionGroupRepeaterList.add(questionMultipleChoice);
-
-
+                }
+                questionGroupRepeaterList.add(questionMultipleChoice);
 
             } else if (children.get("typeName").equals(basicTextField)) {
                 Log.e("TextField", ""+"Im here");
@@ -2365,6 +2479,7 @@ public class MainActivity extends ActionBarActivity {
         Log.e("Previous", ""+(previous.getVisibility() == View.VISIBLE));
         if(FormBase.viewDeque.isEmpty()){
             back.setVisibility(View.GONE);
+            mDrawerToggle.setDrawerIndicatorEnabled(true);
             label.setText("Categories");
         }
         if(!FormBase.labelDeque.isEmpty()){
@@ -2479,6 +2594,7 @@ public class MainActivity extends ActionBarActivity {
             buttonCategory.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    mDrawerToggle.setDrawerIndicatorEnabled(false);
                     final FormsView formsView = new FormsView(MainActivity.this);
                     LinearLayout linearLayoutForms = (LinearLayout) formsView.findViewById(R.id.layoutForms);
                     LinearLayout subcategoryForms = (LinearLayout) formsView.findViewById(R.id.subcategoryForms);
@@ -2612,6 +2728,7 @@ public class MainActivity extends ActionBarActivity {
             buttonCategory.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    mDrawerToggle.setDrawerIndicatorEnabled(false);
                     current = createFormsView(v, buttonCategory, formsViewContainer);
                     FormBase.viewDeque.addLast(categoryView);
                     label.setText(buttonCategory.getText().toString());
@@ -3016,6 +3133,8 @@ public class MainActivity extends ActionBarActivity {
 
     public QuestionGroupView createRepeaterQuestion(List childList,final LinearLayout questionsLayoutRepeater, String questionNameString){
         final QuestionGroupView questions = new QuestionGroupView(MainActivity.this);
+        ImageView expand = (ImageView) questions.findViewById(R.id.expand);
+        expand.setVisibility(View.GONE);
         questions.setId(DataCenter.generateViewId());
         DataCenter.repeaterIdList.add(questions.getId());
         DataCenter.repeaterQuestionNameList.add(questionNameString);

@@ -17,5 +17,6 @@
     <color name="yokohama_red">#E8202D</color>
     <color name="yokohama_black">#000000</color>
     <color name="yokohama_black_lighter">#5B5B5B</color>
+    <color name="fb_000000">#000000</color>
 
 </resources>

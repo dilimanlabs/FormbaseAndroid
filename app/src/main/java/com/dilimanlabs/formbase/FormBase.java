@@ -1,6 +1,7 @@
 package com.dilimanlabs.formbase;
 
 import android.app.Application;
+import android.support.v7.widget.CardView;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
@@ -29,6 +30,7 @@ public class FormBase extends Application {
     public static Map<Button, String> buttonStringMap = new HashMap<>();
     public static String BIN = "";
     public static String SUBMISSION_BIN = "";
+    public static Map<String, CardView> stringCardViewHashMap= new HashMap<>();
     public static String FORM;
     private static FormBase formbaseSingleton;
 
