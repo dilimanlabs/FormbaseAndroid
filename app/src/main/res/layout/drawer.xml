@@ -17,9 +17,14 @@
             android:paddingLeft="16dp"
             android:paddingRight="16dp"
             android:orientation="vertical"
-            android:background="@color/orange"
+            android:background="#cc3333"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/yokohama_logo"/>
 
             <TextView
                 android:id="@+id/name"
@@ -94,7 +99,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/white"
-            android:background="@android:color/holo_orange_light"
+            android:background="@color/yokohama_black"
             android:text="Logout"
             />
 

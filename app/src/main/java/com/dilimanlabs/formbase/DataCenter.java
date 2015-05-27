@@ -5,6 +5,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -32,6 +33,7 @@ public class DataCenter {
     public static Map<String,EditText> editTextMap = new HashMap<>();
     public static Map<String, ToggleButton> toggleButtonMap = new HashMap<>();
     public static Map<Button, String> buttonMap = new HashMap<>();
+    public static Map<String, Spinner> spinnerMap = new HashMap<>();
     public static Map<String, CheckBox> checkBoxMap = new HashMap<>();
     public static Map<String, RadioGroup> radioGroupMap = new HashMap<>();
     public static Map<String, TextView> dateTextViewMap = new HashMap<>();

@@ -18,20 +18,21 @@
 
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/orange_dark"
+        android:background="#cc3333"
         android:minHeight="?attr/actionBarSize">
 
         <ImageView
             android:id="@+id/back"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/abc_ic_ab_back_mtrl_am_alpha"
+            android:src="@drawable/ic_action_back"
             android:padding="5dp"
             android:visibility="gone"
             />
 
         <TextView
             android:id="@+id/label"
+            android:textColor="@color/white"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Categories"

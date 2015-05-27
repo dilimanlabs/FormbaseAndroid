@@ -5,7 +5,24 @@
         <!-- Customize your theme here. -->
         <!-- Main theme colors -->
         <!--   your app branding color for the app bar -->
-        <item name="drawerArrowStyle">@style/Widget.AppCompat.DrawerArrowToggle</item>
+        <item name="colorPrimary">@color/yokohama_dark</item>
+
+        <!-- colorPrimaryDark is used for the status bar -->
+        <item name="colorPrimaryDark">@color/yokohama_dark</item>
+
+        <!-- colorAccent is used as the default value for colorControlActivated
+             which is used to tint widgets -->
+        <item name="colorAccent">@color/yokohama_dark</item>
+        <item name="drawerArrowStyle">@style/MyDrawerArrowToggle</item>
+    </style>
+
+    <style name="MyDrawerArrowToggle" parent="Widget.AppCompat.DrawerArrowToggle">
+        <item name="color">@color/white</item>
+    </style>
+
+    <style name="EditTextCustomHolo" parent="android:Widget.EditText">
+        <item name="android:background">@color/yokohama_dark</item>
+        <item name="android:textColor">#ffffff</item>
     </style>
 
 

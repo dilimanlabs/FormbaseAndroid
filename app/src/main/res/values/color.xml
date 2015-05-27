@@ -9,4 +9,13 @@
     <color name="pressed">#FF1111</color>
     <color name="green">#4CAF50</color>
     <color name="red">#F44336</color>
+    <color name="yokohama_dark">#2f83c2</color>
+    <color name="yokohama_light">#8fa4ae</color>
+    <color name="background">#E9E9E9</color>
+    <color name="background_question_group">#D9D9D9</color>
+    <color name="text_color">#3D3D3D</color>
+    <color name="yokohama_red">#E8202D</color>
+    <color name="yokohama_black">#000000</color>
+    <color name="yokohama_black_lighter">#5B5B5B</color>
+
 </resources>

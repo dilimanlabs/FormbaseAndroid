@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:animateLayoutChanges="true"
-        android:background="@color/orange"
+        android:background="@color/background_question_group"
         android:orientation="vertical"
         >
 
@@ -25,6 +25,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Question Name"
+                android:textColor="@color/text_color"
                 android:textSize="20dp"
                 android:layout_marginTop="20dp"
                 android:padding="10dp"

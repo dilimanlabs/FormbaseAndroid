@@ -31,6 +31,7 @@ import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.DatePicker;
@@ -41,10 +42,12 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.activeandroid.ActiveAndroid;
 import com.dilimanlabs.formbase.adapater.AnswerListViewAdapter;
 import com.dilimanlabs.formbase.authentication.AccountGeneral;
 import com.dilimanlabs.formbase.model.Answers;
@@ -306,6 +309,7 @@ public class MainActivity extends ActionBarActivity {
         accountManager = AccountManager.get(this);
         accounts = accountManager.getAccountsByType(AccountGeneral.ACCOUNT_TYPE);
         accountManager.removeAccount(accounts[0], null, null);
+        ActiveAndroid.getDatabase().close();
         final Intent intent = new Intent(MainActivity.this, MainActivity.class);
         startActivity(intent);
     }
@@ -372,11 +376,20 @@ public class MainActivity extends ActionBarActivity {
                     }
                     else{
                         projects.removeAllViews();
+                        int count = 0;
                         for(Button button : FormBase.buttonList){
                             Log.e("Button", "Button");
                             if(projects.getChildCount() >= 0){
                                 try{
-                                    projects.addView(button);
+                                    if(button.getText().toString().equals("All Projects")){
+                                        count++;
+                                        if(!(count > 1)){
+                                            projects.addView(button);
+                                        }
+                                    }
+                                    else{
+                                        projects.addView(button);
+                                    }
                                 }
                                 catch(Exception e){
                                     Log.e("Error: ", e.getMessage());
@@ -622,7 +635,14 @@ public class MainActivity extends ActionBarActivity {
                             questionMultipleChoice.setChoices(choicesList);
                             int radioButtonID = DataCenter.radioGroupMap.get(child.get("name").toString()).getCheckedRadioButtonId();
                             RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(child.get("name").toString()).findViewById(radioButtonID);
-                            questionMultipleChoice.setAnswer(radioButton.getText().toString());
+                            Spinner spinner = DataCenter.spinnerMap.get(child.get("name").toString());
+                            if(choices.size() >= 10){
+                                questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
+                            }
+                            else{
+                                questionMultipleChoice.setAnswer(radioButton.getText().toString());
+                            }
+                            objectList.add(questionMultipleChoice);
                             objectListInner.add(questionMultipleChoice);
                         }
                         else if(child.get("typeName").equals(basicTextField)){
@@ -752,7 +772,13 @@ public class MainActivity extends ActionBarActivity {
                 questionMultipleChoice.setChoices(choicesList);
                 int radioButtonID = DataCenter.radioGroupMap.get(map.get("name").toString()).getCheckedRadioButtonId();
                 RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(map.get("name").toString()).findViewById(radioButtonID);
-                questionMultipleChoice.setAnswer(radioButton.getText().toString());
+                Spinner spinner = DataCenter.spinnerMap.get(map.get("name").toString());
+                if(choices.size() >= 10){
+                    questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
+                }
+                else{
+                    questionMultipleChoice.setAnswer(radioButton.getText().toString());
+                }
                 objectList.add(questionMultipleChoice);
 
             }
@@ -925,6 +951,8 @@ public class MainActivity extends ActionBarActivity {
 
         Button submit = new Button(MainActivity.this);
         submit.setText("Submit");
+        submit.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
+        submit.setTextColor(context.getResources().getColor(R.color.white));
         submit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1095,6 +1123,8 @@ public class MainActivity extends ActionBarActivity {
         }
 
         Button submit = new Button(MainActivity.this);
+        submit.setTextColor(context.getResources().getColor(R.color.white));
+        submit.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
         submit.setText("Submit");
         submit.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1129,15 +1159,15 @@ public class MainActivity extends ActionBarActivity {
         toggleButton.setTextSize(20);
         toggleButton.setTextOff("False");
         toggleButton.setChecked(false);
-        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.red));
+        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(toggleButton.getText().toString().equals("True")){
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.green));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
                 }
                 else{
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.red));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                 }
             }
         });
@@ -1156,15 +1186,15 @@ public class MainActivity extends ActionBarActivity {
         toggleButton.setTextSize(20);
         toggleButton.setTextOff("False");
         toggleButton.setChecked(false);
-        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.red));
+        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(toggleButton.getText().toString().equals("True")){
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.green));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
                 }
                 else{
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.red));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                 }
             }
         });
@@ -1306,22 +1336,38 @@ public class MainActivity extends ActionBarActivity {
         name.setText(questionName);
         LinearLayout choicesLayout = (LinearLayout) questionMultipleChoiceView.findViewById(R.id.questionChoices);
         RadioGroup radioGroup = new RadioGroup(this);
+        Spinner spinner = new Spinner(this);
+        List<String> choiceList = new ArrayList<>();
         if(isRepeater){
             Log.e("RadioGroup Id: ", ""+repeaterId);
             DataCenter.radioGroupMap.put(repeaterId, radioGroup);
+            DataCenter.spinnerMap.put(repeaterId, spinner);
             Log.e("RadioGroup Contains", ""+DataCenter.radioGroupMap.containsKey(repeaterId));
             Log.e("RadioGroup Map Size:", ""+DataCenter.radioGroupMap.size());
         }
         else{
             DataCenter.radioGroupMap.put(questionName, radioGroup);
+            DataCenter.spinnerMap.put(questionName, spinner);
         }
         for(int x = 0; x<choices.size(); x++){
             LinkedTreeMap<String, Object> choice = (LinkedTreeMap<String, Object>) choices.get(x);
+            choiceList.add(choice.get("name").toString());
             RadioButton radioButton = new RadioButton(this);
             radioButton.setText(choice.get("name").toString());
             radioGroup.addView(radioButton);
         }
-        choicesLayout.addView(radioGroup);
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, choiceList);
+        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(dataAdapter);
+        if(choices.size() >= 10){
+            Log.e("Spinner", "Spinner");
+            choicesLayout.addView(spinner);
+        }
+        else{
+            Log.e("Radio", "Radio");
+            choicesLayout.addView(radioGroup);
+        }
         return questionMultipleChoiceView;
     }
 
@@ -1332,12 +1378,16 @@ public class MainActivity extends ActionBarActivity {
         name.setText(questionName);
         LinearLayout choicesLayout = (LinearLayout) questionMultipleChoiceView.findViewById(R.id.questionChoices);
         RadioGroup radioGroup = new RadioGroup(this);
+        Spinner spinner = new Spinner(this);
+        List<String> choiceList = new ArrayList<>();
+        DataCenter.spinnerMap.put(questionName, spinner);
         DataCenter.radioGroupMap.put(questionName, radioGroup);
         for(int x = 0; x<choices.size(); x++){
             LinkedTreeMap<String, Object> choice = (LinkedTreeMap<String, Object>) choices.get(x);
             RadioButton radioButton = new RadioButton(this);
             radioButton.setId(x);
             radioButton.setText(choice.get("name").toString());
+            choiceList.add(choice.get("name").toString());
             radioButtonList.add(radioButton);
             radioGroup.addView(radioButton);
         }
@@ -1346,7 +1396,19 @@ public class MainActivity extends ActionBarActivity {
                 radioButton.setChecked(true);
             }
         }
-        choicesLayout.addView(radioGroup);
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, choiceList);
+        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(dataAdapter);
+        spinner.setSelection(dataAdapter.getPosition(answer));
+        if(choices.size() >= 10){
+            Log.e("Spinner", "Spinner");
+            choicesLayout.addView(spinner);
+        }
+        else{
+            Log.e("Radio", "Radio");
+            choicesLayout.addView(radioGroup);
+        }
         return questionMultipleChoiceView;
     }
 
@@ -1490,13 +1552,14 @@ public class MainActivity extends ActionBarActivity {
         }
         Button submit = new Button(this);
         submit.setText("Save as Draft");
-        submit.setBackgroundColor(context.getResources().getColor(R.color.orange));
+        submit.setTextColor(context.getResources().getColor(R.color.white));
+        submit.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
         submit.setLayoutParams(layoutParams);
         questionsLayout.addView(submit);
         submit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.e("Im in", "Im in");
+                Log.e("Im in", "Now");
                 if(isAllFieldsValid(DataCenter.editTextMap)){
                     Log.e("Json", json);
                     com.dilimanlabs.formbase.objects.Form newForm = createJSONFile(json);
@@ -1504,6 +1567,7 @@ public class MainActivity extends ActionBarActivity {
                     Log.e("JsonAnswer", jsonAnswer);
                     Log.e("Form", gson.toJson(newForm));
                     if(Answers.insertAnswer(fo, formName, jsonAnswer) && Photos.insertPhoto(formName, mCurrentPhotoPath)){
+                        Log.e("Previous", "Previous");
                         if(previousForms != null){
                             Log.e("Updating", "updating");
                             updateButtonAfterSubmission(previousForms, formNameString);
@@ -1513,11 +1577,6 @@ public class MainActivity extends ActionBarActivity {
                     backView(current, FormBase.viewDeque.removeLast());
                     capture.setVisibility(View.GONE);
                 }
-
-
-
-
-
             }
         });
     }
@@ -1655,19 +1714,20 @@ public class MainActivity extends ActionBarActivity {
         if(answer.getState().equals("draft")){
             Button attachment = new Button(this);
             attachment.setText("Attachment: "+Photos.getPhotoPath(answer.local_id));
-            attachment.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            attachment.setBackgroundColor(context.getResources().getColor(R.color.yokohama_dark));
             attachment.setLayoutParams(layoutParams);
             Button submit = new Button(this);
             submit.setText("Submit for Approval");
-            submit.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            submit.setTextColor(context.getResources().getColor(R.color.white));
+            submit.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
             submit.setLayoutParams(layoutParams);
             questionsLayout.addView(attachment);
             questionsLayout.addView(submit);
             submit.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Log.e("Im in", "Im in");
-                    if(isAllFieldsValid(DataCenter.editTextMap) && isAllRadioGroupValid(DataCenter.radioGroupMap)){
+                    Log.e("Im in", "Draft");
+                    if(isAllFieldsValid(DataCenter.editTextMap)){
                         Log.e("Json", json);
                         jsonAnswer = json;
                         DataCenter.answers = answer;
@@ -1687,11 +1747,12 @@ public class MainActivity extends ActionBarActivity {
         }else{
             Button attachment = new Button(this);
             attachment.setText("Attachment: "+Photos.getPhotoPath(answer.local_id));
-            attachment.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            attachment.setBackgroundColor(context.getResources().getColor(R.color.yokohama_dark));
             attachment.setLayoutParams(layoutParams);
             Button submitted = new Button(this);
             submitted.setText("Submitted");
-            submitted.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            submitted.setTextColor(context.getResources().getColor(R.color.white));
+            submitted.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
             submitted.setLayoutParams(layoutParams);
             submitted.setClickable(false);
             questionsLayout.addView(attachment);
@@ -1780,7 +1841,7 @@ public class MainActivity extends ActionBarActivity {
         if(Boolean.parseBoolean(editing)){
             Button approve = new Button(this);
             approve.setText("Approve");
-            approve.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            approve.setBackgroundColor(context.getResources().getColor(R.color.yokohama_dark));
             approve.setLayoutParams(layoutParams);
             approve.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -2369,16 +2430,6 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
-    public boolean isAllRadioGroupValid(Map<String, RadioGroup> radioGroupMap){
-        for(Map.Entry<String, RadioGroup> entry : radioGroupMap.entrySet()){
-            if(!String.valueOf(entry.getValue().getCheckedRadioButtonId()).equals(null) && !String.valueOf(entry.getValue().getCheckedRadioButtonId()).equals("") ){
-                entry.getValue().requestFocus();
-                Toast.makeText(MainActivity.this, "Radiobutton cannot be empty", Toast.LENGTH_SHORT).show();
-                return false;
-            }
-        }
-        return true;
-    }
     public boolean isInputValid(String input){
         if(input != null && input.length()>0){
             return true;
@@ -2421,9 +2472,10 @@ public class MainActivity extends ActionBarActivity {
         //check if there exists a form without category
         if(!Form.getAllFormsByCategory("Uncategorized").isEmpty()){
             final Button buttonCategory = new Button(MainActivity.this);
-            buttonCategory.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            buttonCategory.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
             buttonCategory.setLayoutParams(layoutParams);
             buttonCategory.setText("Uncategorized");
+            buttonCategory.setTextColor(context.getResources().getColor(R.color.white));
             buttonCategory.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -2437,8 +2489,9 @@ public class MainActivity extends ActionBarActivity {
                     linearLayoutForms.removeAllViews();
                     for (final Form f : form) {
                         final Button buttonForm = new Button(MainActivity.this);
-                        buttonForm.setBackgroundColor(context.getResources().getColor(R.color.orange));
+                        buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                         buttonForm.setLayoutParams(layoutParams);
+                        buttonForm.setTextColor(context.getResources().getColor(R.color.white));
                         buttonForm.setText(f.getName());
                         buttonForm.setOnClickListener(new View.OnClickListener() {
                             @Override
@@ -2449,7 +2502,8 @@ public class MainActivity extends ActionBarActivity {
                                 final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
                                 Button addButton = (Button) formView.findViewById(R.id.addButton);
                                 TextView note = (TextView) formView.findViewById(R.id.note);
-                                addButton.setBackgroundColor(context.getResources().getColor(R.color.orange));
+                                addButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                                addButton.setTextColor(context.getResources().getColor(R.color.white));
                                 addButton.setLayoutParams(layoutParams);
                                 TextView retrieveFormLabel = (TextView)formView.findViewById(R.id.retrieveFormLabel);
                                 previousForms = (LinearLayout) formView.findViewById(R.id.previousForms);
@@ -2550,8 +2604,9 @@ public class MainActivity extends ActionBarActivity {
         }
         for (final Category category : categories) {
             final Button buttonCategory = new Button(MainActivity.this);
-            buttonCategory.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            buttonCategory.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
             buttonCategory.setLayoutParams(layoutParams);
+            buttonCategory.setTextColor(context.getResources().getColor(R.color.white));
             buttonCategory.setText(category.getName());
             DataCenter.buttonMap.put(buttonCategory, category.getName());
             buttonCategory.setOnClickListener(new View.OnClickListener() {
@@ -2585,8 +2640,9 @@ public class MainActivity extends ActionBarActivity {
         for(final Category c : child_categories){
             final Button subCategoryButton = new Button(MainActivity.this);
             subCategoryButton.setLayoutParams(layoutParams);
-            subCategoryButton.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            subCategoryButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
             subCategoryButton.setText(c.getName());
+            subCategoryButton.setTextColor(context.getResources().getColor(R.color.white));
             subCategoryButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -2606,8 +2662,9 @@ public class MainActivity extends ActionBarActivity {
         for (final Form f : form) {
             final Button buttonForm = new Button(MainActivity.this);
             buttonForm.setLayoutParams(layoutParams);
-            buttonForm.setBackgroundColor(context.getResources().getColor(R.color.orange));
+            buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
             buttonForm.setText(f.getName());
+            buttonForm.setTextColor(context.getResources().getColor(R.color.white));
             buttonForm.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -2628,7 +2685,8 @@ public class MainActivity extends ActionBarActivity {
                     final Button addButton = (Button) formView.findViewById(R.id.addButton);
                     TextView note = (TextView) formView.findViewById(R.id.note);
                     addButton.setLayoutParams(layoutParams);
-                    addButton.setBackgroundColor(context.getResources().getColor(R.color.orange));
+                    addButton.setTextColor(context.getResources().getColor(R.color.white));
+                    addButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                     previousForms = (LinearLayout) formView.findViewById(R.id.previousForms);
                     previousForms.removeAllViews();
                     previousCategory = f.getCategory();
@@ -3350,12 +3408,23 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
+    public boolean checkProjectButtons(){
+        boolean hasButton = false;
+        for(Button button : FormBase.buttonList){
+            if(button.getText().toString().equals("All Projects")){
+                hasButton = true;
+                break;
+            }
+        }
+        return hasButton;
+    }
+
 
     public void createProjectButtons(final Button allProjects){
         Log.e("Creating", "Buttons");
         allProjects.setText("All Projects");
         FormBase.buttonList.add(allProjects);
-        allProjects.setBackgroundColor(context.getResources().getColor(R.color.orange_dark));
+        allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
         allProjects.setLayoutParams(layoutParams);
         allProjects.setTextColor(context.getResources().getColor(R.color.white));
         allProjects.setOnClickListener(new View.OnClickListener() {
@@ -3365,8 +3434,8 @@ public class MainActivity extends ActionBarActivity {
                 FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
                 backToCategoryView();
                 Log.e("URL is", FormBase.BIN);
-                currentButton.setBackgroundColor(context.getResources().getColor(android.R.color.holo_orange_light));
-                allProjects.setBackgroundColor(context.getResources().getColor(R.color.orange_dark));
+                currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                 currentButton = allProjects;
                 if(formView != null && formView.getVisibility() != View.GONE){
                     Log.e("All", "Getting answer");
@@ -3389,7 +3458,7 @@ public class MainActivity extends ActionBarActivity {
             button.setLayoutParams(layoutParams);
             button.setText(p.getName());
             button.setTextColor(context.getResources().getColor(R.color.white));
-            button.setBackgroundColor(context.getResources().getColor(android.R.color.holo_orange_light));
+            button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
             button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -3399,11 +3468,11 @@ public class MainActivity extends ActionBarActivity {
                     backToCategoryView();
                     Log.e("URL is", FormBase.BIN);
                     if(!currentButton.equals(b)){
-                        b.setBackgroundColor(context.getResources().getColor(R.color.orange_dark));
-                        currentButton.setBackgroundColor(context.getResources().getColor(android.R.color.holo_orange_light));
+                        b.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                        currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
                     }
                     currentButton = b;
-                    allProjects.setBackgroundColor(context.getResources().getColor(android.R.color.holo_orange_light));
+                    allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
                     if(formView != null && formView.getVisibility() != View.GONE){
                         Log.e("Project", "Getting answer");
                         if(isNetworkAvailable()){
