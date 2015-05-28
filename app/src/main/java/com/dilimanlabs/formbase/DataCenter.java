@@ -29,7 +29,8 @@ public class DataCenter {
     public static List<String> repeaterQuestionNameList = new ArrayList<>();
     public static Map<String, List> questionListMap = new HashMap<>();
     public static boolean isLogin = false;
-    public static final String GLOBAL_URL = "http://192.168.0.7/";
+    public static final String GLOBAL_URL = "http://52.11.161.155:8080/";
+
     public static Map<String,EditText> editTextMap = new HashMap<>();
     public static Map<String, ToggleButton> toggleButtonMap = new HashMap<>();
     public static Map<Button, String> buttonMap = new HashMap<>();
@@ -37,6 +38,16 @@ public class DataCenter {
     public static Map<String, CheckBox> checkBoxMap = new HashMap<>();
     public static Map<String, RadioGroup> radioGroupMap = new HashMap<>();
     public static Map<String, TextView> dateTextViewMap = new HashMap<>();
+
+    public static Map<String, EditText> repeaterBasicTextEditText = new HashMap<>();
+    public static Map<String, ToggleButton> repeaterToggleButton = new HashMap<>();
+    public static Map<String, Spinner> repeaterSpinner = new HashMap<>();
+    public static Map<String, CheckBox> repeaterCheckBox = new HashMap<>();
+    public static Map<String, RadioGroup> repeaterRadioGroup = new HashMap<>();
+    public static Map<String, TextView> repeaterDateTextView = new HashMap<>();
+    public static Map<String, EditText> repeaterNumberTextEditText = new HashMap<>();
+
+
     public static LinearLayout questionsLayout = null;
     public static Answers answer = null;
     public static boolean saved = false;

@@ -32,6 +32,7 @@ public class FormBase extends Application {
     public static String SUBMISSION_BIN = "";
     public static Map<String, CardView> stringCardViewHashMap= new HashMap<>();
     public static String FORM;
+    public static String currentButtonText = "";
     private static FormBase formbaseSingleton;
 
     @Override

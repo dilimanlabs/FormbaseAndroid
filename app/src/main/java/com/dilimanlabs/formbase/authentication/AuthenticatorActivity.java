@@ -481,6 +481,12 @@ public class AuthenticatorActivity extends ActionBarActivity {
             response = sb.toString();
             response = "{\"projectList\":"+response + "}";
             ProjectsWrapper projectsWrapper = gson.fromJson(response, ProjectsWrapper.class);
+            Projects pro = new Projects();
+            pro.setUrl("");
+            pro.setName("All");
+            pro.setCreated_by("");
+            pro.setOrganizational_group("");
+            pro.save();
             for(Project project : projectsWrapper.getProjectList()){
                 Projects projects = new Projects();
                 projects.setUrl(project.getUrl());
