@@ -15,8 +15,14 @@
     <color name="background_question_group">#D9D9D9</color>
     <color name="text_color">#3D3D3D</color>
     <color name="yokohama_red">#E8202D</color>
+    <color name="yokohama_red_light">#f59695</color>
     <color name="yokohama_black">#000000</color>
     <color name="yokohama_black_lighter">#5B5B5B</color>
     <color name="fb_000000">#000000</color>
+    <color name="yokohama_forms_background">#131313</color>
+    <color name="yokohama_light_dark">#1c1c1c</color>
+    <color name="yokohama_button_light">#3b3b3b</color>
+    <color name="yokohama_button_dark">#1a1a1a</color>
+    <color name="formbase_generic">#ff9000</color>
 
 </resources>

@@ -38,6 +38,8 @@ public class DataCenter {
     public static Map<String, CheckBox> checkBoxMap = new HashMap<>();
     public static Map<String, RadioGroup> radioGroupMap = new HashMap<>();
     public static Map<String, TextView> dateTextViewMap = new HashMap<>();
+    public static boolean isDatePickRepeater = false;
+    public static String datePickRepeaterID = "";
 
     public static Map<String, EditText> repeaterBasicTextEditText = new HashMap<>();
     public static Map<String, ToggleButton> repeaterToggleButton = new HashMap<>();

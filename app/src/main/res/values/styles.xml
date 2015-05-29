@@ -5,14 +5,14 @@
         <!-- Customize your theme here. -->
         <!-- Main theme colors -->
         <!--   your app branding color for the app bar -->
-        <item name="colorPrimary">@color/yokohama_dark</item>
+        <item name="colorPrimary">@color/yokohama_black</item>
 
         <!-- colorPrimaryDark is used for the status bar -->
-        <item name="colorPrimaryDark">@color/yokohama_dark</item>
+        <item name="colorPrimaryDark">@color/yokohama_black_lighter</item>
 
         <!-- colorAccent is used as the default value for colorControlActivated
              which is used to tint widgets -->
-        <item name="colorAccent">@color/yokohama_dark</item>
+        <item name="colorAccent">@color/yokohama_red</item>
         <item name="drawerArrowStyle">@style/MyDrawerArrowToggle</item>
     </style>
 

@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:animateLayoutChanges="true"
-        android:background="@color/background_question_group"
+        android:background="@color/yokohama_light_dark"
         android:orientation="vertical"
         >
 
@@ -25,7 +25,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Question Name"
-                android:textColor="@color/text_color"
+                android:textColor="@color/white"
                 android:textSize="20dp"
                 android:layout_marginTop="20dp"
                 android:padding="10dp"
@@ -39,9 +39,9 @@
                 android:layout_margin="16dp"
                 android:src="@drawable/add_new"
                 android:visibility="gone"
-                fab:fab_colorNormal="@color/accentColor"
+                fab:fab_colorNormal="@color/yokohama_red"
                 fab:fab_colorPressed="@color/pressed"
-                fab:fab_colorRipple="@color/accentColor" />
+                fab:fab_colorRipple="@color/yokohama_red" />
             <ImageView
                 android:id="@+id/expand"
                 android:layout_gravity="top|left"

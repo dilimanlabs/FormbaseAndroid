@@ -31,6 +31,8 @@ import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.Transformation;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -74,6 +76,7 @@ import com.dilimanlabs.formbase.objects.QuestionSwitch;
 import com.dilimanlabs.formbase.objects.QuestionTextField;
 import com.dilimanlabs.formbase.objects.Token;
 import com.dilimanlabs.formbase.views.AnswersView;
+import com.dilimanlabs.formbase.views.CategoryCardView;
 import com.dilimanlabs.formbase.views.CategoryView;
 import com.dilimanlabs.formbase.views.FormView;
 import com.dilimanlabs.formbase.views.FormsView;
@@ -327,6 +330,7 @@ public class MainActivity extends ActionBarActivity {
             }
             DataCenter.questionsLayout = questionsLayout;
             DataCenter.currentPath = mCurrentPhotoPath;
+            FormBase.currentButtonText = currentButton.getText().toString();
             pause = true;
     }
     @Override
@@ -363,43 +367,13 @@ public class MainActivity extends ActionBarActivity {
                 init();
                 projects = (LinearLayout) findViewById(R.id.projects);
                 projects.removeAllViews();
-                final Button allProjects = new Button(this);
-                createProjectButtons(allProjects);
+                createSubmissionBins();
                 DataCenter.isLogin = false;
             }
             else{
                 projects = (LinearLayout) findViewById(R.id.projects);
-                final Button allProjects = new Button(this);
-                if(projects.getChildCount() >= 0){
-                    if(!pause){
-                        createProjectButtons(allProjects);
-                    }
-                    else{
-                        projects.removeAllViews();
-                        int count = 0;
-                        for(Button button : FormBase.buttonList){
-
-                            Log.e("Button", "Button");
-                            if(projects.getChildCount() >= 0){
-                                try{
-                                    if(button.getText().toString().equals("All Projects")){
-                                        count++;
-                                        if(!(count > 1)){
-                                            projects.addView(button);
-                                        }
-                                    }
-                                    else{
-                                        projects.addView(button);
-                                    }
-                                }
-                                catch(Exception e){
-                                    Log.e("Error: ", e.getMessage());
-                                }
-                            }
-                        }
-                    }
-                }
-
+                projects.removeAllViews();
+                createSubmissionBins();
             }
         initAccounts();
         if(!FormBase.viewDeque.isEmpty()){
@@ -437,7 +411,7 @@ public class MainActivity extends ActionBarActivity {
                     Log.e("Repeater Id:","Size: "+DataCenter.repeaterIdList.size());
                     for(int r = 0; r<DataCenter.repeaterQuestionNameList.size(); r++){
                         Log.e("ID: ", ""+DataCenter.repeaterIdList.get(r).toString());
-                        repeatedInner.put(DataCenter.repeaterQuestionNameList.get(r),insertRepeaterAnswersForOuter(DataCenter.questionListMap.get(DataCenter.repeaterQuestionNameList.get(r).toString()), DataCenter.repeaterIdList.get(r).toString()));
+                        repeatedInner.put(DataCenter.repeaterQuestionNameList.get(r),insertRepeaterAnswersForOuter(DataCenter.questionListMap.get(DataCenter.repeaterQuestionNameList.get(r).toString()), DataCenter.repeaterIdList.get(r).toString(),r));
                     }
                 }else{
                     for(int x = 0; x<childList.size(); x++){
@@ -1152,14 +1126,15 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
-    public QuestionSwitchView createQuestionSwitchView(String typeName, String questionName, boolean isRepeater, String repeaterId){
+    public QuestionSwitchView createQuestionSwitchView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
         QuestionSwitchView questionSwitchView = new QuestionSwitchView(this);
         TextView name = (TextView)questionSwitchView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout choices = (LinearLayout)questionSwitchView.findViewById(R.id.questionChoices);
         final ToggleButton toggleButton = new ToggleButton(this);
+        toggleButton.setId(DataCenter.generateViewId());
         if(isRepeater){
-            DataCenter.toggleButtonMap.put(repeaterId, toggleButton);
+            DataCenter.repeaterToggleButton.put(repeaterId +questionName, toggleButton);
         }
         else{
             DataCenter.toggleButtonMap.put(questionName, toggleButton);
@@ -1169,15 +1144,15 @@ public class MainActivity extends ActionBarActivity {
         toggleButton.setTextSize(20);
         toggleButton.setTextOff("False");
         toggleButton.setChecked(false);
-        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(toggleButton.getText().toString().equals("True")){
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red_light));
                 }
                 else{
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
                 }
             }
         });
@@ -1196,15 +1171,15 @@ public class MainActivity extends ActionBarActivity {
         toggleButton.setTextSize(20);
         toggleButton.setTextOff("False");
         toggleButton.setChecked(false);
-        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(toggleButton.getText().toString().equals("True")){
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red_light));
                 }
                 else{
-                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
                 }
             }
         });
@@ -1213,23 +1188,38 @@ public class MainActivity extends ActionBarActivity {
     }
 
     @SuppressWarnings("deprecation")
-    public QuestionDateFieldView createQuestionDateField(String typeName, final String questionName, boolean isRepeater, String repeaterId){
+    public QuestionDateFieldView createQuestionDateField(String typeName, final String questionName, boolean isRepeater, final String repeaterId, boolean isQuestionGroup){
         QuestionDateFieldView questionDateField = new QuestionDateFieldView(this);
+        questionDateField.setId(DataCenter.generateViewId());
         TextView name = (TextView)questionDateField.findViewById(R.id.questionName);
         name.setText(questionName);
         final TextView dateTextView = (TextView)questionDateField.findViewById(R.id.date);
-        dateTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dateId = questionName;
-                showDialog(999);
-            }
-        });
+        dateTextView.setId(DataCenter.generateViewId());
         if(isRepeater){
-            DataCenter.dateTextViewMap.put(repeaterId, dateTextView);
+            Log.e("Inserted Repeater", "Date");
+            Log.e("Repeater Id Date", repeaterId);
+            DataCenter.repeaterDateTextView.put(repeaterId +questionName, dateTextView);
+            dateTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    DataCenter.isDatePickRepeater = true;
+                    dateId = repeaterId +questionName;
+                    DataCenter.datePickRepeaterID = repeaterId+questionName;
+                    Log.e("ID", DataCenter.datePickRepeaterID);
+                    showDialog(999);
+                }
+            });
         }
         else{
             DataCenter.dateTextViewMap.put(questionName, dateTextView);
+            dateTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    DataCenter.isDatePickRepeater= false;
+                    dateId = questionName;
+                    showDialog(999);
+                }
+            });
         }
         Log.e("Content", ""+questionName);
         return questionDateField;
@@ -1254,18 +1244,20 @@ public class MainActivity extends ActionBarActivity {
         return questionDateField;
     }
 
-    public QuestionNumberFieldView createQuestionNumberFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId){
+    public QuestionNumberFieldView createQuestionNumberFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
         QuestionNumberFieldView questionNumberFieldView = new QuestionNumberFieldView(this);
+        questionNumberFieldView.setId(DataCenter.generateViewId());
         TextView name = (TextView)questionNumberFieldView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionNumberFieldView.findViewById(R.id.questionAnswer);
         EditText answer = new EditText(this);
+        answer.setId(DataCenter.generateViewId());
         answer.setInputType(InputType.TYPE_CLASS_NUMBER);
         answer.setLines(1);
         questionAnswer.addView(answer);
         questionAnswer.setVisibility(View.VISIBLE);
         if(isRepeater){
-            DataCenter.editTextMap.put(repeaterId, answer);
+            DataCenter.repeaterNumberTextEditText.put(repeaterId + questionName, answer);
         }
         else{
             DataCenter.editTextMap.put(questionName, answer);
@@ -1289,18 +1281,21 @@ public class MainActivity extends ActionBarActivity {
         return questionNumberFieldView;
     }
 
-    public QuestionBasicTextField createQuestionBasicTextField(String typeName, String questionName, boolean isRepeater, String repeaterId){
+    public QuestionBasicTextField createQuestionBasicTextField(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
         QuestionBasicTextField questionBasicTextField = new QuestionBasicTextField(this);
+        questionBasicTextField.setId(DataCenter.generateViewId());
         TextView name = (TextView)questionBasicTextField.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionAnswer = (LinearLayout)questionBasicTextField.findViewById(R.id.questionAnswer);
         EditText answer = new EditText(this);
+        answer.setId(DataCenter.generateViewId());
         answer.setHint("Type here");
         questionAnswer.addView(answer);
         answer.setLines(1);
         questionAnswer.setVisibility(View.VISIBLE);
         if(isRepeater){
-            DataCenter.editTextMap.put(repeaterId, answer);
+            Log.e("Repeater Id TextField", repeaterId);
+            DataCenter.repeaterBasicTextEditText.put(repeaterId +questionName, answer);
         }
         else{
             DataCenter.editTextMap.put(questionName, answer);
@@ -1322,7 +1317,7 @@ public class MainActivity extends ActionBarActivity {
         return questionBasicTextField;
     }
 
-    public QuestionImageFieldView createQuestionImageFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId){
+    public QuestionImageFieldView createQuestionImageFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
         QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(this);
         TextView name = (TextView)questionImageFieldView.findViewById(R.id.questionName);
         LinearLayout imageLayout = (LinearLayout)questionImageFieldView.findViewById(R.id.image);
@@ -1342,18 +1337,21 @@ public class MainActivity extends ActionBarActivity {
         return questionImageFieldView;
     }
 
-    public QuestionMultipleChoiceView createQuestionMultipleChoiceView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId){
+    public QuestionMultipleChoiceView createQuestionMultipleChoiceView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
         QuestionMultipleChoiceView questionMultipleChoiceView = new QuestionMultipleChoiceView(this);
+        questionMultipleChoiceView.setId(DataCenter.generateViewId());
         TextView name = (TextView) questionMultipleChoiceView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout choicesLayout = (LinearLayout) questionMultipleChoiceView.findViewById(R.id.questionChoices);
         RadioGroup radioGroup = new RadioGroup(this);
+        radioGroup.setId(DataCenter.generateViewId());
         Spinner spinner = new Spinner(this);
+        spinner.setId(DataCenter.generateViewId());
         List<String> choiceList = new ArrayList<>();
         if(isRepeater){
             Log.e("RadioGroup Id: ", ""+repeaterId);
-            DataCenter.radioGroupMap.put(repeaterId, radioGroup);
-            DataCenter.spinnerMap.put(repeaterId, spinner);
+            DataCenter.repeaterRadioGroup.put(repeaterId + questionName, radioGroup);
+            DataCenter.repeaterSpinner.put(repeaterId+questionName, spinner);
             Log.e("RadioGroup Contains", ""+DataCenter.radioGroupMap.containsKey(repeaterId));
             Log.e("RadioGroup Map Size:", ""+DataCenter.radioGroupMap.size());
         }
@@ -1424,17 +1422,19 @@ public class MainActivity extends ActionBarActivity {
         return questionMultipleChoiceView;
     }
 
-    public QuestionCheckListView createQuestionCheckListView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId){
+    public QuestionCheckListView createQuestionCheckListView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
         QuestionCheckListView questionCheckListView = new QuestionCheckListView(this);
+        questionCheckListView.setId(DataCenter.generateViewId());
         TextView name = (TextView) questionCheckListView.findViewById(R.id.questionName);
         name.setText(questionName);
         LinearLayout questionChoices = (LinearLayout)questionCheckListView.findViewById(R.id.questionChoices);
         for(int x = 0; x<choices.size(); x++){
             CheckBox choiceCheckBox = new CheckBox(this);
+            choiceCheckBox.setId(DataCenter.generateViewId());
             LinkedTreeMap<String, Object> choice = (LinkedTreeMap<String, Object>) choices.get(x);
             Log.e("CheckList", (x+1)+" "+choice.get("name"));
             if(isRepeater){
-                DataCenter.checkBoxMap.put(repeaterId, choiceCheckBox);
+                DataCenter.repeaterCheckBox.put(choice.get("name").toString() + repeaterId + questionName, choiceCheckBox);
             }
             else{
                 DataCenter.checkBoxMap.put(choice.get("name").toString()+questionName, choiceCheckBox);
@@ -1484,6 +1484,7 @@ public class MainActivity extends ActionBarActivity {
                 TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
                 questionName.setText(map.get("name").toString());
                 final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
+                questions.setId(DataCenter.generateViewId());
                 expand.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -1521,39 +1522,39 @@ public class MainActivity extends ActionBarActivity {
                                 questions.addView(questionGroupChild);
                         }
                         else if(child.get("typeName").equals(dateField)){
-                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionDateFieldView);
                             questions.addView(questionDateFieldView);
                         }
                         else if(child.get("typeName").equals(imageField)){
-                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionImageFieldView);
                             questions.addView(questionImageFieldView);
                         }
                         else if(child.get("typeName").equals(switchQuestion)){
-                            QuestionSwitchView questionSwitchView = createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            QuestionSwitchView questionSwitchView = createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionSwitchView);
                             questions.addView(questionSwitchView);
                         }
                         else if(child.get("typeName").equals(numberField)){
-                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionNumberFieldView);
                             questions.addView(questionNumberFieldView);
                         }
                         else if(child.get("typeName").equals(multipleChoice)){
                             List choices = (List)child.get("choices");
-                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null);
+                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null, true);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionMultipleChoiceView);
                             questions.addView(questionMultipleChoiceView);
                         }
                         else if(child.get("typeName").equals(basicTextField)){
-                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), false, null);
+                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionBasicTextField);
                             questions.addView(questionBasicTextField);
                         }
                         else if(child.get("typeName").equals(checkList)){
                             List choices = (List)child.get("choices");
-                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null);
+                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null, true);
                              FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionCheckListView);
                             questions.addView(questionCheckListView);
                         }
@@ -1567,39 +1568,39 @@ public class MainActivity extends ActionBarActivity {
 
             }
             else if(map.get("typeName").equals(dateField)){
-                QuestionDateFieldView questionDateFieldView = createQuestionDateField(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                QuestionDateFieldView questionDateFieldView = createQuestionDateField(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionDateFieldView);
                 questionsLayout.addView(questionDateFieldView);
             }
             else if(map.get("typeName").equals(imageField)){
-                QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionImageFieldView);
                 questionsLayout.addView(questionImageFieldView);
             }
             else if(map.get("typeName").equals(switchQuestion)){
-                QuestionSwitchView questionSwitchView = createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                QuestionSwitchView questionSwitchView = createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionSwitchView);
                 questionsLayout.addView(questionSwitchView);
             }
             else if(map.get("typeName").equals(numberField)){
-                QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionNumberFieldView);
                 questionsLayout.addView(questionNumberFieldView);
             }
             else if(map.get("typeName").equals(multipleChoice)){
                 List choices = (List)map.get("choices");
-                QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null);
+                QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null, false);
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionMultipleChoiceView);
                 questionsLayout.addView(questionMultipleChoiceView);
             }
             else if(map.get("typeName").equals(basicTextField)){
-                QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(map.get("typeName").toString(), map.get("name").toString(), false, null);
+                QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionBasicTextField);
                 questionsLayout.addView(questionBasicTextField);
             }
             else if(map.get("typeName").equals(checkList)){
                 List choices = (List)map.get("choices");
-                QuestionCheckListView questionCheckListView = createQuestionCheckListView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null);
+                QuestionCheckListView questionCheckListView = createQuestionCheckListView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null, false);
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionCheckListView);
                 questionsLayout.addView(questionCheckListView);
 
@@ -1615,7 +1616,7 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 Log.e("Im in", "Now");
-                if(isAllFieldsValid(DataCenter.editTextMap)){
+
                     Log.e("Json", json);
                     com.dilimanlabs.formbase.objects.Form newForm = createJSONFile(json);
                     jsonAnswer = gson.toJson(newForm);
@@ -1623,18 +1624,12 @@ public class MainActivity extends ActionBarActivity {
                     Log.e("Form", gson.toJson(newForm));
                     if(Answers.insertAnswer(fo, formName, jsonAnswer) && Photos.insertPhoto(formName, mCurrentPhotoPath)){
                         Log.e("Previous", "Previous");
-                        if(previousForms != null){
-                            Log.e("Updating", "updating");
                             updateButtonAfterSubmission(previousForms, formNameString);
                             Toast.makeText(MainActivity.this, "Form saved successfully.", Toast.LENGTH_SHORT).show();
-                        }
                     }
                     backView(current, FormBase.viewDeque.removeLast());
                     capture.setVisibility(View.GONE);
-                }
-                else{
-                    Log.e("Please check", "EditText");
-                }
+
             }
         });
         Log.e("CardView Size: ", ""+FormBase.stringCardViewHashMap.size());
@@ -1678,7 +1673,7 @@ public class MainActivity extends ActionBarActivity {
                                 repeaterLayout.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(imageField)){
-                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
                             }
                             else if(c.get("typeName").equals(switchQuestion)){
                                 repeaterLayout.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
@@ -1719,7 +1714,7 @@ public class MainActivity extends ActionBarActivity {
                             questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                         }
                         else if(c.get("typeName").equals(imageField)){
-                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
                         }
                         else if(c.get("typeName").equals(switchQuestion)){
                             Log.e("typeName",""+c.get("typeName").toString());
@@ -1750,7 +1745,7 @@ public class MainActivity extends ActionBarActivity {
                 questionsLayout.addView(createQuestionDateFieldWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(imageField)){
-                questionsLayout.addView(createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null));
+                questionsLayout.addView(createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false));
             }
             else if(map.get("typeName").equals(switchQuestion)){
                 questionsLayout.addView(createQuestionSwitchViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
@@ -1788,7 +1783,7 @@ public class MainActivity extends ActionBarActivity {
                 @Override
                 public void onClick(View v) {
                     Log.e("Im in", "Draft");
-                    if(isAllFieldsValid(DataCenter.editTextMap)){
+
                         Log.e("Json", json);
                         jsonAnswer = json;
                         DataCenter.answers = answer;
@@ -1801,7 +1796,7 @@ public class MainActivity extends ActionBarActivity {
                         else{
                             Toast.makeText(MainActivity.this, "Please connect the device to the internet before submitting your answer.", Toast.LENGTH_LONG).show();
                         }
-                    }
+
             }
             });
 
@@ -1860,7 +1855,7 @@ public class MainActivity extends ActionBarActivity {
                                 repeaterLayout.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(imageField)){
-                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
                             }
                             else if(c.get("typeName").equals(switchQuestion)){
                                 repeaterLayout.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
@@ -1901,7 +1896,7 @@ public class MainActivity extends ActionBarActivity {
                             questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                         }
                         else if(c.get("typeName").equals(imageField)){
-                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null));
+                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
                         }
                         else if(c.get("typeName").equals(switchQuestion)){
                             Log.e("typeName",""+c.get("typeName").toString());
@@ -1932,7 +1927,7 @@ public class MainActivity extends ActionBarActivity {
                 questionsLayout.addView(createQuestionDateFieldWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(imageField)){
-                questionsLayout.addView(createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null));
+                questionsLayout.addView(createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false));
             }
             else if(map.get("typeName").equals(switchQuestion)){
                 questionsLayout.addView(createQuestionSwitchViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
@@ -2047,6 +2042,13 @@ public class MainActivity extends ActionBarActivity {
                 RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(id).findViewById(radioButtonID);
                 questionMultipleChoice.setAnswer(radioButton.getText().toString());
                 questionGroupRepeaterList.add(questionMultipleChoice);
+                Spinner spinner = DataCenter.spinnerMap.get(id);
+                if(choices.size() >= 10){
+                    questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
+                }
+                else{
+                    questionMultipleChoice.setAnswer(radioButton.getText().toString());
+                }
 
             } else if (children.get("typeName").equals(basicTextField)) {
                 QuestionTextField questionTextField = new QuestionTextField();
@@ -2089,7 +2091,7 @@ public class MainActivity extends ActionBarActivity {
         return questionGroupRepeaterList;
     }
 
-    public List<Object> insertRepeaterAnswersForOuter(List childrenList, String id ){
+    public List<Object> insertRepeaterAnswersForOuter(List childrenList, String id, int r ){
         Log.e("ChildrenList", ""+childrenList.size());
         List<Object> questionGroupRepeaterList = new ArrayList<>();
         for (int a = 0; a < childrenList.size(); a++) {
@@ -2106,14 +2108,20 @@ public class MainActivity extends ActionBarActivity {
                 questionGroupRepeaterList.add(questionImageField);
             }
             else if(children.get("typeName").equals(dateField)){
-                QuestionDateField questionDateField = new QuestionDateField();
-                questionDateField.setTypeName(children.get("typeName").toString());
-                questionDateField.setName(children.get("name").toString());
-                questionDateField.setLevel(Double.parseDouble(children.get("level").toString()));
-                questionDateField.setOrder(Double.parseDouble(children.get("order").toString()));
-                questionDateField.setElName(children.get("elName").toString());
-                questionDateField.setAnswer(DataCenter.dateTextViewMap.get(id).getText().toString());
-                questionGroupRepeaterList.add(questionDateField);
+
+                        QuestionDateField questionDateField = new QuestionDateField();
+                        questionDateField.setTypeName(children.get("typeName").toString());
+                        questionDateField.setName(children.get("name").toString());
+                        questionDateField.setLevel(Double.parseDouble(children.get("level").toString()));
+                        questionDateField.setOrder(Double.parseDouble(children.get("order").toString()));
+                        questionDateField.setElName(children.get("elName").toString());
+                        questionDateField.setAnswer(DataCenter.repeaterDateTextView.get(id+children.get("name")).getText().toString());
+                        questionGroupRepeaterList.add(questionDateField);
+
+
+
+
+
             }
             else if (children.get("typeName").equals(switchQuestion)) {
                 QuestionSwitch questionSwitch = new QuestionSwitch();
@@ -2123,7 +2131,7 @@ public class MainActivity extends ActionBarActivity {
                 questionSwitch.setLevel(Double.parseDouble(children.get("level").toString()));
                 questionSwitch.setOrder(Double.parseDouble(children.get("order").toString()));
                 questionSwitch.setElName(children.get("elName").toString());
-                questionSwitch.setAnswer(DataCenter.toggleButtonMap.get(id).getText().toString());
+                questionSwitch.setAnswer(DataCenter.repeaterToggleButton.get(id+children.get("name")).getText().toString());
                 questionGroupRepeaterList.add(questionSwitch);
 
             } else if (children.get("typeName").equals(numberField)) {
@@ -2137,7 +2145,7 @@ public class MainActivity extends ActionBarActivity {
                 questionNumberField.setRanged(Boolean.parseBoolean(children.get("ranged").toString()));
                 questionNumberField.setMinimum(Double.parseDouble(children.get("minimum").toString()));
                 questionNumberField.setMaximum(Double.parseDouble(children.get("maximum").toString()));
-                questionNumberField.setAnswer(DataCenter.editTextMap.get(id).getText().toString());
+                questionNumberField.setAnswer(DataCenter.repeaterNumberTextEditText.get(id+children.get("name")).getText().toString());
                 questionGroupRepeaterList.add(questionNumberField);
 
 
@@ -2158,18 +2166,17 @@ public class MainActivity extends ActionBarActivity {
                 }
                 questionMultipleChoice.setChoices(choicesList);
                 if(choices.size() >= 10){
-                    Spinner spinner = DataCenter.spinnerMap.get(children.get("name").toString());
+                    Spinner spinner = DataCenter.repeaterSpinner.get(id+children.get("name"));
                     questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
                 }
                 else{
-                    int radioButtonID = DataCenter.radioGroupMap.get(children.get("name").toString()).getCheckedRadioButtonId();
-                    RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(children.get("name").toString()).findViewById(radioButtonID);
+                    int radioButtonID = DataCenter.repeaterRadioGroup.get(id+children.get("name")).getCheckedRadioButtonId();
+                    RadioButton radioButton = (RadioButton)DataCenter.repeaterRadioGroup.get(id+children.get("name")).findViewById(radioButtonID);
                     questionMultipleChoice.setAnswer(radioButton.getText().toString());
                 }
                 questionGroupRepeaterList.add(questionMultipleChoice);
 
             } else if (children.get("typeName").equals(basicTextField)) {
-                Log.e("TextField", ""+"Im here");
                 QuestionTextField questionTextField = new QuestionTextField();
                 questionTextField.setType(children.get("type").toString());
                 questionTextField.setTypeName(children.get("typeName").toString());
@@ -2177,7 +2184,7 @@ public class MainActivity extends ActionBarActivity {
                 questionTextField.setLevel(Double.parseDouble(children.get("level").toString()));
                 questionTextField.setOrder(Double.parseDouble(children.get("order").toString()));
                 questionTextField.setElName(children.get("elName").toString());
-                questionTextField.setAnswer(DataCenter.editTextMap.get(id).getText().toString());
+                questionTextField.setAnswer(DataCenter.repeaterBasicTextEditText.get(id+children.get("name")).getText().toString());
                 questionGroupRepeaterList.add(questionTextField);
 
             } else if (children.get("typeName").equals(checkList)) {
@@ -2195,7 +2202,7 @@ public class MainActivity extends ActionBarActivity {
                     LinkedTreeMap<String, Object> choice = (LinkedTreeMap<String, Object>) choices.get(z);
                     Choices c = new Choices(id);
                     choicesList.add(c);
-                    CheckBox checkBox = DataCenter.checkBoxMap.get(choice.get("name").toString()+id);
+                    CheckBox checkBox = DataCenter.checkBoxMap.get(choice.get("name").toString()+id+children.get("name").toString());
                     if(checkBox.isChecked()){
                         answers.add(new com.dilimanlabs.formbase.objects.Answers(checkBox.getText().toString()));
                     }
@@ -2480,10 +2487,6 @@ public class MainActivity extends ActionBarActivity {
         if(FormBase.viewDeque.isEmpty()){
             back.setVisibility(View.GONE);
             mDrawerToggle.setDrawerIndicatorEnabled(true);
-            label.setText("Categories");
-        }
-        if(!FormBase.labelDeque.isEmpty()){
-                label.setText(FormBase.labelDeque.removeLast());
         }
     }
 
@@ -2567,7 +2570,16 @@ public class MainActivity extends ActionBarActivity {
         @Override
         public void onDateSet(DatePicker arg0, int arg1, int arg2, int arg3) {
             if(!dateId.equals("")){
-                DataCenter.dateTextViewMap.get(dateId).setText(showDate(arg1, arg2+1, arg3));
+                if(DataCenter.isDatePickRepeater){
+                    Log.e("Date", showDate(arg1, arg2+1, arg3));
+                    Log.e("ID", DataCenter.datePickRepeaterID);
+                    Log.e("DateText is in Map?", ""+DataCenter.dateTextViewMap.containsKey(DataCenter.datePickRepeaterID));
+                    DataCenter.repeaterDateTextView.get(DataCenter.datePickRepeaterID).setText(showDate(arg1, arg2+1, arg3));
+                }
+                else{
+                    DataCenter.dateTextViewMap.get(dateId).setText(showDate(arg1, arg2+1, arg3));
+                }
+
             }
         }
     };
@@ -2586,46 +2598,50 @@ public class MainActivity extends ActionBarActivity {
         List<Category> categories = Category.getAllCategories();
         //check if there exists a form without category
         if(!Form.getAllFormsByCategory("Uncategorized").isEmpty()){
-            final Button buttonCategory = new Button(MainActivity.this);
-            buttonCategory.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-            buttonCategory.setLayoutParams(layoutParams);
-            buttonCategory.setText("Uncategorized");
-            buttonCategory.setTextColor(context.getResources().getColor(R.color.white));
-            buttonCategory.setOnClickListener(new View.OnClickListener() {
+            CategoryCardView categoryCardView = new CategoryCardView(MainActivity.this);
+            categoryCardView.getCategoryName().setText("Uncategorized");
+            categoryCardView.getFormName().setText(Form.getAllFormsByCategory("Uncategorized").size()+" "+"Forms");
+            categoryCardView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mDrawerToggle.setDrawerIndicatorEnabled(false);
                     final FormsView formsView = new FormsView(MainActivity.this);
                     LinearLayout linearLayoutForms = (LinearLayout) formsView.findViewById(R.id.layoutForms);
                     LinearLayout subcategoryForms = (LinearLayout) formsView.findViewById(R.id.subcategoryForms);
-                    Button b = (Button)v;
-                    List<Form> form = Form.getAllFormsByCategory(b.getText().toString());
+                    CategoryCardView b = (CategoryCardView)v;
+                    List<Form> form = Form.getAllFormsByCategory(b.getCategoryName().getText().toString());
                     subcategoryForms.removeAllViews();
                     Log.e("Size: ", ""+Form.countTable());
                     linearLayoutForms.removeAllViews();
+                    int count = 0;
                     for (final Form f : form) {
+                        count++;
                         final Button buttonForm = new Button(MainActivity.this);
-                        buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-                        buttonForm.setLayoutParams(layoutParams);
+                        if(count % 2 == 1){
+                            buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_button_light));
+                        }
+                        else{
+                            buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_button_dark));
+                        }
                         buttonForm.setTextColor(context.getResources().getColor(R.color.white));
                         buttonForm.setText(f.getName());
                         buttonForm.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                currentFormURL=f.getUrl();
+                                currentFormURL = f.getUrl();
                                 formNameString = buttonForm.getText().toString();
-                                formView = (FormView)findViewById(R.id.formView);
+                                formView = (FormView) findViewById(R.id.formView);
+                                final TextView formLabel = (TextView) formView.findViewById(R.id.formLabel);
+                                formLabel.setText(formNameString);
                                 final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
-                                Button addButton = (Button) formView.findViewById(R.id.addButton);
+                                FloatingActionButton addButton = (FloatingActionButton) formView.findViewById(R.id.addButton);
                                 TextView note = (TextView) formView.findViewById(R.id.note);
-                                addButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-                                addButton.setTextColor(context.getResources().getColor(R.color.white));
                                 addButton.setLayoutParams(layoutParams);
-                                TextView retrieveFormLabel = (TextView)formView.findViewById(R.id.retrieveFormLabel);
+                                TextView retrieveFormLabel = (TextView) formView.findViewById(R.id.retrieveFormLabel);
                                 previousForms = (LinearLayout) formView.findViewById(R.id.previousForms);
                                 previousForms.removeAllViews();
                                 previousCategory = f.getCategory();
-                                for(Answers answers : Answers.getFormsByFormName(formNameString)){
+                                for (Answers answers : Answers.getFormsByFormName(formNameString)) {
                                     final PreviousView previousView = new PreviousView(MainActivity.this);
                                     previousView.getName().setText(answers.getLocal_id());
                                     previousView.getState().setText(answers.getState());
@@ -2633,7 +2649,7 @@ public class MainActivity extends ActionBarActivity {
                                         @Override
                                         public void onClick(View v) {
                                             Log.e("Click", "Click");
-                                            PreviousView prev = (PreviousView)v;
+                                            PreviousView prev = (PreviousView) v;
                                             Answers fo = Answers.getFormByLocal_ID(prev.getName().getText().toString());
                                             com.dilimanlabs.formbase.objects.Form form = gson.fromJson(fo.getContent(), com.dilimanlabs.formbase.objects.Form.class);
                                             Log.e("Prev Content", fo.getContent());
@@ -2641,9 +2657,7 @@ public class MainActivity extends ActionBarActivity {
                                             formView.setVisibility(View.GONE);
                                             FormBase.viewDeque.addLast(formView);
                                             questionsLayout.setVisibility(View.VISIBLE);
-                                            label.setText(prev.getName().getText().toString());
                                             labelString = formNameString;
-                                            FormBase.labelDeque.addLast(formNameString);
                                             current = questionsLayout;
                                         }
                                     });
@@ -2664,12 +2678,10 @@ public class MainActivity extends ActionBarActivity {
                                                         Log.e("FormName String", formNameString);
                                                         Form fo = Form.getFormByName(formNameString);
                                                         com.dilimanlabs.formbase.objects.Form form = gson.fromJson(fo.getContent(), com.dilimanlabs.formbase.objects.Form.class);
-                                                        createAllQuestions(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(),fo,value, formNameString);
+                                                        createAllQuestions(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, value, formNameString);
                                                         formView.setVisibility(View.GONE);
                                                         FormBase.viewDeque.addLast(formView);
                                                         questionsLayout.setVisibility(View.VISIBLE);
-                                                        label.setText(value);
-                                                        FormBase.labelDeque.addLast(buttonForm.getText().toString());
                                                         current = questionsLayout;
                                                     }
                                                 }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -2679,17 +2691,15 @@ public class MainActivity extends ActionBarActivity {
                                         }).show();
                                     }
                                 });
-                                Log.e("BIN",FormBase.BIN);
-                                if(FormBase.BIN.equals("")){
+                                Log.e("BIN", FormBase.BIN);
+                                if (FormBase.BIN.equals("")) {
                                     addButton.setVisibility(View.GONE);
-                                    if(!Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
+                                    if (!Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())) {
                                         note.setVisibility(View.VISIBLE);
                                     }
-                                }
-                                else if(!Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting())){
+                                } else if (!Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting())) {
                                     addButton.setVisibility(View.GONE);
-                                }
-                                else{
+                                } else {
                                     addButton.setVisibility(View.VISIBLE);
                                     note.setVisibility(View.GONE);
                                     retrieveForms.setVisibility(View.GONE);
@@ -2698,8 +2708,6 @@ public class MainActivity extends ActionBarActivity {
                                 formsViewContainer.setVisibility(View.GONE);
                                 FormBase.viewDeque.addLast(formsViewContainer);
                                 formView.setVisibility(View.VISIBLE);
-                                label.setText(buttonForm.getText().toString());
-                                FormBase.labelDeque.addLast(buttonCategory.getText().toString());
                                 current = formView;
                             }
                         });
@@ -2711,75 +2719,74 @@ public class MainActivity extends ActionBarActivity {
                     formsViewContainer.removeAllViews();
                     formsViewContainer.addView(formsView);
                     formsViewContainer.setVisibility(View.VISIBLE);
-                    label.setText("Uncategorized");
-                    FormBase.labelDeque.addLast("Category");
                     current = formsViewContainer;
                 }
             });
-                layoutCategories.addView(buttonCategory);
+                layoutCategories.addView(categoryCardView);
         }
         for (final Category category : categories) {
-            final Button buttonCategory = new Button(MainActivity.this);
-            buttonCategory.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-            buttonCategory.setLayoutParams(layoutParams);
-            buttonCategory.setTextColor(context.getResources().getColor(R.color.white));
-            buttonCategory.setText(category.getName());
-            DataCenter.buttonMap.put(buttonCategory, category.getName());
-            buttonCategory.setOnClickListener(new View.OnClickListener() {
+            final CategoryCardView categoryCardView = new CategoryCardView(MainActivity.this);
+            categoryCardView.getCategoryName().setText(category.getName());
+            categoryCardView.getFormName().setText(Form.getAllFormsByCategory(category.getName()).size()+" "+"Forms");
+            categoryCardView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     mDrawerToggle.setDrawerIndicatorEnabled(false);
-                    current = createFormsView(v, buttonCategory, formsViewContainer);
+                    current = createFormsView(v, categoryCardView, formsViewContainer);
                     FormBase.viewDeque.addLast(categoryView);
-                    label.setText(buttonCategory.getText().toString());
-                    FormBase.labelDeque.addLast("Category");
                 }
             });
             Log.e("Parent", category.getParent());
             if(category.getParent().equals("")){
-                layoutCategories.addView(buttonCategory);
+                layoutCategories.addView(categoryCardView);
             }
         }
         categoryView.setVisibility(View.VISIBLE);
     }
 
-    public LinearLayout createFormsView(View v, final Button buttonCategory, final LinearLayout formsViewContainer){
+    public LinearLayout createFormsView(final View v, final CategoryCardView categoryCardView, final LinearLayout formsViewContainer){
         final FormsView formsView = new FormsView(MainActivity.this);
         LinearLayout linearLayoutForms = (LinearLayout) formsView.findViewById(R.id.layoutForms);
         LinearLayout subcategoryForms = (LinearLayout) formsView.findViewById(R.id.subcategoryForms);
-        Button b = (Button)v;
-        List<Form> form = Form.getAllFormsByCategory(b.getText().toString());
-        Log.e("Button", b.getText().toString());
-        Category cat = Category.getURLByCategoryName(b.getText().toString());
+        CategoryCardView b = (CategoryCardView)v;
+        List<Form> form = Form.getAllFormsByCategory(b.getCategoryName().getText().toString());
+        Log.e("Button", b.getCategoryName().getText().toString());
+        Category cat = Category.getURLByCategoryName(b.getCategoryName().getText().toString());
         Log.e("Category Parent", cat.getUrl());
         List<Category> child_categories = Category.getAllCategoryByURL(cat.getUrl());
         subcategoryForms.removeAllViews();
         for(final Category c : child_categories){
-            final Button subCategoryButton = new Button(MainActivity.this);
-            subCategoryButton.setLayoutParams(layoutParams);
-            subCategoryButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-            subCategoryButton.setText(c.getName());
-            subCategoryButton.setTextColor(context.getResources().getColor(R.color.white));
-            subCategoryButton.setOnClickListener(new View.OnClickListener() {
+            final CategoryCardView categoryCardView1 = new CategoryCardView(MainActivity.this);
+            categoryCardView1.getCategoryName().setText(c.getName());
+            categoryCardView1.getFormName().setText(Form.getAllFormsByCategory(c.getName()).size() + " " + "Forms");
+            categoryCardView1.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     Log.e("Instance", ""+(formsViewContainer.getChildAt(0) instanceof FormsView));
                     Log.e("Before Size", ""+FormBase.viewDeque.size());
                     FormBase.viewDeque.addLast((FormsView)formsViewContainer.getChildAt(0));
                     Log.e("After Size", ""+FormBase.viewDeque.size());
-                    current = createFormsView(v, subCategoryButton, formsViewContainer);
-                    label.setText(subCategoryButton.getText().toString());
-                    FormBase.labelDeque.addLast(buttonCategory.getText().toString());
+                    current = createFormsView(v, categoryCardView1, formsViewContainer);
                 }
             });
-            subcategoryForms.addView(subCategoryButton);
+            subcategoryForms.addView(categoryCardView1);
         }
         Log.e("Size: ", ""+Form.countTable());
         linearLayoutForms.removeAllViews();
+        int count = 0;
         for (final Form f : form) {
+            count++;
             final Button buttonForm = new Button(MainActivity.this);
-            buttonForm.setLayoutParams(layoutParams);
-            buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+            if(count % 2 == 1){
+                Log.e("Count", ""+count);
+                Log.e("Black", "Black");
+                buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_button_light));
+            }
+            else{
+                Log.e("Count", ""+count);
+                Log.e("Black", "Not Black");
+                buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_button_dark));
+            }
             buttonForm.setText(f.getName());
             buttonForm.setTextColor(context.getResources().getColor(R.color.white));
             buttonForm.setOnClickListener(new View.OnClickListener() {
@@ -2790,6 +2797,8 @@ public class MainActivity extends ActionBarActivity {
                     FormBase.FORM = Form.getFormByName(formNameString).getUrl().split("/")[Form.getFormByName(formNameString).getUrl().split("/").length-1];
                     Log.e("Form", FormBase.FORM);
                     formView = (FormView)findViewById(R.id.formView);
+                    final TextView formLabel = (TextView)formView.findViewById(R.id.formLabel);
+                    formLabel.setText(formNameString);
                     if(isNetworkAvailable()){
                         new GetAnswers(formView, formNameString).execute();
                     }
@@ -2799,11 +2808,8 @@ public class MainActivity extends ActionBarActivity {
 
                     TextView retrieveFormLabel = (TextView)formView.findViewById(R.id.retrieveFormLabel);
                     final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
-                    final Button addButton = (Button) formView.findViewById(R.id.addButton);
+                    final FloatingActionButton addButton = (FloatingActionButton) formView.findViewById(R.id.addButton);
                     TextView note = (TextView) formView.findViewById(R.id.note);
-                    addButton.setLayoutParams(layoutParams);
-                    addButton.setTextColor(context.getResources().getColor(R.color.white));
-                    addButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                     previousForms = (LinearLayout) formView.findViewById(R.id.previousForms);
                     previousForms.removeAllViews();
                     previousCategory = f.getCategory();
@@ -2823,9 +2829,7 @@ public class MainActivity extends ActionBarActivity {
                                 formView.setVisibility(View.GONE);
                                 FormBase.viewDeque.addLast(formView);
                                 questionsLayout.setVisibility(View.VISIBLE);
-                                label.setText(prev.getName().getText().toString());
                                 labelString = formNameString;
-                                FormBase.labelDeque.addLast(formNameString);
                                 current = questionsLayout;
                             }
                         });
@@ -2850,8 +2854,6 @@ public class MainActivity extends ActionBarActivity {
                                             formView.setVisibility(View.GONE);
                                             FormBase.viewDeque.addLast(formView);
                                             questionsLayout.setVisibility(View.VISIBLE);
-                                            label.setText(value);
-                                            FormBase.labelDeque.addLast(buttonForm.getText().toString());
                                             current = questionsLayout;
                                         }
                                     }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -2880,18 +2882,13 @@ public class MainActivity extends ActionBarActivity {
                     formsViewContainer.setVisibility(View.GONE);
                     FormBase.viewDeque.addLast(formsViewContainer);
                     formView.setVisibility(View.VISIBLE);
-                    label.setText(buttonForm.getText().toString());
-                    FormBase.labelDeque.addLast(buttonCategory.getText().toString());
                     current = formView;
                 }
             });
             linearLayoutForms.addView(buttonForm);
         }
         categoryView.setVisibility(View.GONE);
-        if(Category.getParentCategoryByName(buttonCategory.getText().toString()).equals("")){
-            Log.e("Im here", "Parent");
-            label.setText(buttonCategory.getText().toString());
-            FormBase.labelDeque.addLast("Category");
+        if(Category.getParentCategoryByName(categoryCardView.getCategoryName().getText().toString()).equals("")){
         }
         back.setVisibility(View.VISIBLE);
         formsViewContainer.removeAllViews();
@@ -2919,9 +2916,7 @@ public class MainActivity extends ActionBarActivity {
                         formView.setVisibility(View.GONE);
                         FormBase.viewDeque.addLast(formView);
                         questionsLayout.setVisibility(View.VISIBLE);
-                        label.setText(prev.getName().getText().toString());
                         labelString = formNameString;
-                        FormBase.labelDeque.addLast(formNameString);
                         current = questionsLayout;
                     }
                 });
@@ -2952,9 +2947,7 @@ public class MainActivity extends ActionBarActivity {
                         formView.setVisibility(View.GONE);
                         FormBase.viewDeque.addLast(formView);
                         questionsLayout.setVisibility(View.VISIBLE);
-                        label.setText(prev.getName().getText().toString());
                         labelString = formNameString;
-                        FormBase.labelDeque.addLast(formNameString);
                         current = questionsLayout;
                     }
                 });
@@ -3228,27 +3221,28 @@ public class MainActivity extends ActionBarActivity {
 
             }
             else if(child.get("typeName").equals(dateField)){
-                repeaterQuestions.addView(createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId())));
+                repeaterQuestions.addView(createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
             }
             else if(child.get("typeName").equals(imageField)){
-                repeaterQuestions.addView(createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId())));
+                repeaterQuestions.addView(createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
             }
             else if(child.get("typeName").equals(switchQuestion)){
-                repeaterQuestions.addView(createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId())));
+                repeaterQuestions.addView(createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
             }
             else if(child.get("typeName").equals(numberField)){
-                repeaterQuestions.addView(createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId())));
+                repeaterQuestions.addView(createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
             }
             else if(child.get("typeName").equals(multipleChoice)){
+                Log.e("Repeater", "Multiple Choice");
                 List choices = (List)child.get("choices");
-                repeaterQuestions.addView(createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId())));
+                repeaterQuestions.addView(createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId()), false));
             }
             else if(child.get("typeName").equals(basicTextField)){
-                repeaterQuestions.addView(createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId())));
+                repeaterQuestions.addView(createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
             }
             else if(child.get("typeName").equals(checkList)){
                 List choices = (List)child.get("choices");
-                repeaterQuestions.addView(createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId())));
+                repeaterQuestions.addView(createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId()), false));
             }
 
 
@@ -3404,8 +3398,6 @@ public class MainActivity extends ActionBarActivity {
                         formView.setVisibility(View.GONE);
                         FormBase.viewDeque.addLast(formView);
                         questionsLayout.setVisibility(View.VISIBLE);
-                        label.setText(a.getSubmitted_by().getText().toString());
-                        FormBase.labelDeque.addLast(labelString);
                         current = questionsLayout;
                     }
                 });
@@ -3459,13 +3451,16 @@ public class MainActivity extends ActionBarActivity {
             connection = (HttpURLConnection) newUrl.openConnection();
             Log.e("URL", url);
             Log.e("get Answers token", accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
-            connection.setRequestMethod("PUT");
+            connection.setDoOutput(true);
             connection.setRequestProperty("Authorization", "Token " +accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
-            Log.e("Code Error", ""+connection.getResponseCode());
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestMethod("PUT");
             request = new OutputStreamWriter(connection.getOutputStream());
             request.write(data);
             request.flush();
             request.close();
+            Log.e("Error", "E");
             String line = "";
             InputStreamReader isr = new InputStreamReader(connection.getInputStream());
             BufferedReader reader = new BufferedReader(isr);
@@ -3527,96 +3522,96 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    public boolean checkProjectButtons(){
-        boolean hasButton = false;
-        for(Button button : FormBase.buttonList){
-            if(button.getText().toString().equals("All Projects")){
-                hasButton = true;
-                break;
-            }
-        }
-        return hasButton;
-    }
 
-
-    public void createProjectButtons(final Button allProjects){
-        Log.e("Creating", "Buttons");
-        allProjects.setText("All Projects");
-        FormBase.buttonList.add(allProjects);
-        allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-        allProjects.setLayoutParams(layoutParams);
-        allProjects.setTextColor(context.getResources().getColor(R.color.white));
-        allProjects.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                FormBase.BIN = "";
-                FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
-                backToCategoryView();
-                Log.e("URL is", FormBase.BIN);
-                currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
-                allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-                currentButton = allProjects;
-                if(formView != null && formView.getVisibility() != View.GONE){
-                    Log.e("All", "Getting answer");
-                    if(isNetworkAvailable()){
-                        new GetAnswers(formView, label.getText().toString()).execute();
-                    }
-                    else{
-                        Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
-                    }
-
-                }
-            }
-        });
-        projects.addView(allProjects);
-
+    public void createSubmissionBins(){
+        projects.removeAllViews();
+        final Button allProjects = new Button(this);
         for(Projects p : Projects.getAllProjects()){
-            Button button = new Button(this);
-            FormBase.buttonStringMap.put(button, p.getUrl());
-            FormBase.buttonList.add(button);
-            button.setLayoutParams(layoutParams);
-            button.setText(p.getName());
-            button.setTextColor(context.getResources().getColor(R.color.white));
-            button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
-            button.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Button b = (Button)v;
-                    FormBase.BIN = FormBase.buttonStringMap.get(b).split("/")[FormBase.buttonStringMap.get(b).split("/").length-1];
-                    FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
-                    backToCategoryView();
-                    Log.e("URL is", FormBase.BIN);
-                    if(!currentButton.equals(b)){
-                        b.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-                        currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
-                    }
-                    currentButton = b;
-                    allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
-                    if(formView != null && formView.getVisibility() != View.GONE){
-                        Log.e("Project", "Getting answer");
-                        if(isNetworkAvailable()){
-                            new GetAnswers(formView, label.getText().toString()).execute();
-                        }
-                        else{
-                            Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+            if(p.getName().equals("All")){
+                allProjects.setText(p.getName());
+                allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                allProjects.setLayoutParams(layoutParams);
+                allProjects.setTextColor(context.getResources().getColor(R.color.white));
+                allProjects.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        FormBase.BIN = "";
+                        FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
+                        backToCategoryView();
+                        label.setText(allProjects.getText().toString());
+                        Log.e("URL is", FormBase.BIN);
+                        currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                        allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                        currentButton = allProjects;
+                        if(formView != null && formView.getVisibility() != View.GONE){
+                            Log.e("All", "Getting answer");
+                            if(isNetworkAvailable()){
+                                new GetAnswers(formView, label.getText().toString()).execute();
+                            }
+                            else{
+                                Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                            }
+
                         }
                     }
+                });
+                projects.addView(allProjects);
+            }
+            else{
+                Button button = new Button(this);
+                FormBase.buttonStringMap.put(button, p.getUrl());
+                FormBase.buttonList.add(button);
+                button.setLayoutParams(layoutParams);
+                button.setText(p.getName());
+                button.setTextColor(context.getResources().getColor(R.color.white));
+                if(p.getName().equals(FormBase.currentButtonText)){
+                    button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                    allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                    currentButton = button;
                 }
-            });
-            projects.addView(button);
+                else{
+                    button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                }
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Button b = (Button)v;
+                        Log.e("Label", ""+b.getText().toString());
+                        label.setText(b.getText().toString());
+                        FormBase.BIN = FormBase.buttonStringMap.get(b).split("/")[FormBase.buttonStringMap.get(b).split("/").length-1];
+                        FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
+                        backToCategoryView();
+                        Log.e("URL is", FormBase.BIN);
+                        if(!currentButton.equals(b)){
+                            b.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                            currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                        }
+                        currentButton = b;
+                        allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                        if(formView != null && formView.getVisibility() != View.GONE){
+                            Log.e("Project", "Getting answer");
+                            if(isNetworkAvailable()){
+                                new GetAnswers(formView, label.getText().toString()).execute();
+                            }
+                            else{
+                                Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
+                });
+                projects.addView(button);
+            }
         }
     }
 
     public void backToCategoryView(){
         FormBase.viewDeque.clear();
-        FormBase.labelDeque.clear();
         retrieveAllData(questionsLayout, innerQuestionsLayout, original);
         if(null != formView && formView.getVisibility() == View.VISIBLE){
             formView.setVisibility(View.GONE);
         }
         mDrawerLayout.closeDrawers();
         back.setVisibility(View.GONE);
-        label.setText("Category");
     }
 
     private boolean isNetworkAvailable() {
@@ -3626,4 +3621,56 @@ public class MainActivity extends ActionBarActivity {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
+    public static void expand(final View v) {
+        v.measure(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        final int targetHeight = v.getMeasuredHeight();
+
+        v.getLayoutParams().height = 0;
+        v.setVisibility(View.VISIBLE);
+        Animation a = new Animation()
+        {
+            @Override
+            protected void applyTransformation(float interpolatedTime, Transformation t) {
+                v.getLayoutParams().height = interpolatedTime == 1
+                        ? LinearLayout.LayoutParams.WRAP_CONTENT
+                        : (int)(targetHeight * interpolatedTime);
+                v.requestLayout();
+            }
+
+            @Override
+            public boolean willChangeBounds() {
+                return true;
+            }
+        };
+
+        // 1dp/ms
+        a.setDuration((int)(targetHeight / v.getContext().getResources().getDisplayMetrics().density));
+        v.startAnimation(a);
+    }
+
+    public static void collapse(final View v) {
+        final int initialHeight = v.getMeasuredHeight();
+
+        Animation a = new Animation()
+        {
+            @Override
+            protected void applyTransformation(float interpolatedTime, Transformation t) {
+                if(interpolatedTime == 1){
+                    v.setVisibility(View.GONE);
+                }else{
+                    v.getLayoutParams().height = initialHeight - (int)(initialHeight * interpolatedTime);
+                    v.requestLayout();
+                }
+            }
+
+            @Override
+            public boolean willChangeBounds() {
+                return true;
+            }
+        };
+
+        // 1dp/ms
+        a.setDuration((int)(initialHeight / v.getContext().getResources().getDisplayMetrics().density));
+        v.startAnimation(a);
+    }
 }
