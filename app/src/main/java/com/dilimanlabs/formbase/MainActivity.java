@@ -1368,7 +1368,7 @@ public class MainActivity extends ActionBarActivity {
         }
         ArrayAdapter<String> dataAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item, choiceList);
-        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        dataAdapter.setDropDownViewResource(android.R.layout.simple_selectable_list_item);
         spinner.setAdapter(dataAdapter);
         if(choices.size() >= 10){
             Log.e("Spinner", "Spinner");
