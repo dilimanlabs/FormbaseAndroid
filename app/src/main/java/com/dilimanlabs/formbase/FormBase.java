@@ -23,6 +23,7 @@ public class FormBase extends Application {
     public  static String currentPath;
     public static boolean isSaved;
     public static boolean isCaptured;
+    public static boolean isQuestionImage;
     public static Deque<LinearLayout> viewDeque = new ArrayDeque<>();
     public static Deque<String> labelDeque = new ArrayDeque<>();
     public static  List<AnswersForApproval> answersForApprovalListForViewing = new ArrayList<>();

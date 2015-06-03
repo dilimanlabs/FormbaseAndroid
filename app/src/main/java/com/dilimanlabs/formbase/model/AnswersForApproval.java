@@ -145,8 +145,8 @@ public class AnswersForApproval extends Model {
         ActiveAndroid.getDatabase().close();
     }
 
-    public static AnswersForApproval getAnswersForApprovalByCreatedBy(String created_by){
-        AnswersForApproval answersForApproval = new Select().from(AnswersForApproval.class).where("Created_By = ?", created_by).executeSingle();
+    public static AnswersForApproval getAnswersForApprovalByCreatedBy(String created_by, String date_created){
+        AnswersForApproval answersForApproval = new Select().from(AnswersForApproval.class).where("Created_By = ? AND Date_Created = ?", created_by, date_created).executeSingle();
         ActiveAndroid.getDatabase().close();
         return answersForApproval;
     }

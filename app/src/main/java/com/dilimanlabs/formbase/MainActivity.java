@@ -6,7 +6,6 @@ import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
-import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -31,8 +30,6 @@ import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.Transformation;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -50,6 +47,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.activeandroid.ActiveAndroid;
+import com.afollestad.materialdialogs.AlertDialogWrapper;
 import com.dilimanlabs.formbase.adapater.AnswerListViewAdapter;
 import com.dilimanlabs.formbase.authentication.AccountGeneral;
 import com.dilimanlabs.formbase.model.Answers;
@@ -58,13 +56,13 @@ import com.dilimanlabs.formbase.model.Category;
 import com.dilimanlabs.formbase.model.CurrentUser;
 import com.dilimanlabs.formbase.model.Form;
 import com.dilimanlabs.formbase.model.Photos;
+import com.dilimanlabs.formbase.model.PhotosImageView;
 import com.dilimanlabs.formbase.model.Projects;
 import com.dilimanlabs.formbase.objects.CategoryWrapper;
 import com.dilimanlabs.formbase.objects.Choices;
 import com.dilimanlabs.formbase.objects.FormObjectWrapper;
 import com.dilimanlabs.formbase.objects.JsonAnswer;
 import com.dilimanlabs.formbase.objects.JsonAnswerWrapper;
-import com.dilimanlabs.formbase.objects.PhotoObject;
 import com.dilimanlabs.formbase.objects.QuestionCheckList;
 import com.dilimanlabs.formbase.objects.QuestionDateField;
 import com.dilimanlabs.formbase.objects.QuestionGroup;
@@ -96,6 +94,7 @@ import com.google.common.collect.Multimap;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import com.melnykov.fab.FloatingActionButton;
+import com.squareup.picasso.Picasso;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -107,6 +106,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.protocol.HTTP;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -200,6 +200,10 @@ public class MainActivity extends ActionBarActivity {
     private LinearLayout mainLayout;
     private Button logout;
     private boolean pause;
+    private ImageView download;
+    private ImageView sendEmail;
+    private AlertDialogWrapper.Builder alertDialogWrapper;
+    private ImageView imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -238,6 +242,8 @@ public class MainActivity extends ActionBarActivity {
         back.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                sendEmail.setVisibility(View.GONE);
+                download.setVisibility(View.GONE);
                 if(capture != null){
                     capture.setVisibility(View.GONE);
                 }
@@ -259,6 +265,35 @@ public class MainActivity extends ActionBarActivity {
                         backView(current, remove);
                     }
                 }
+            }
+        });
+        download = (ImageView)toolbar.findViewById(R.id.download);
+        sendEmail = (ImageView)toolbar.findViewById(R.id.sendEmail);
+        sendEmail.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final EditText input = new EditText(MainActivity.this);
+                input.setInputType(InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS);
+                input.setHint("Your Email");
+                new AlertDialogWrapper.Builder(MainActivity.this)
+                        .setTitle("Enter your Email")
+                        .setView(input)
+                        .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+
+                            }
+                        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        // Do nothing.
+                    }
+                }).show();
+            }
+        });
+        download.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.e("Click", "Download");
+                new DownloadFile("http://api.formbase.com.ph/download/answers/"+DataCenter.DOWNLOAD_ID).execute();
             }
         });
         capture = (ImageView)toolbar.findViewById(R.id.captureImage);
@@ -297,6 +332,9 @@ public class MainActivity extends ActionBarActivity {
         catch (Exception e){
             e.printStackTrace();
         }
+        projects = (LinearLayout) findViewById(R.id.projects);
+        projects.removeAllViews();
+        createSubmissionBins();
     }
 
     public void initAccounts(){
@@ -309,12 +347,22 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void logout(){
-        accountManager = AccountManager.get(this);
-        accounts = accountManager.getAccountsByType(AccountGeneral.ACCOUNT_TYPE);
-        accountManager.removeAccount(accounts[0], null, null);
-        ActiveAndroid.getDatabase().close();
-        final Intent intent = new Intent(MainActivity.this, MainActivity.class);
-        startActivity(intent);
+        new AlertDialogWrapper.Builder(MainActivity.this)
+                .setTitle("Are you sure?")
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        accountManager = AccountManager.get(MainActivity.this);
+                        accounts = accountManager.getAccountsByType(AccountGeneral.ACCOUNT_TYPE);
+                        accountManager.removeAccount(accounts[0], null, null);
+                        ActiveAndroid.getDatabase().close();
+                        final Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                        startActivity(intent);
+                    }
+                }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Do nothing.
+            }
+        }).show();
     }
 
 
@@ -356,27 +404,25 @@ public class MainActivity extends ActionBarActivity {
                 }
                 questionsLayout = FormBase.globalQuestion;
                 if(FormBase.isCaptured == true){
-                    Button attachment = new Button(this);
-                    attachment.setText("Attachment: "+FormBase.currentPath);
-                    questionsLayout.addView(attachment);
+                    if(!FormBase.isQuestionImage){
+                        Button attachment = new Button(this);
+                        attachment.setText("Attachment: "+FormBase.currentPath);
+                        questionsLayout.addView(attachment);
+                    }
+                    else{
+                        FormBase.isQuestionImage = false;
+                    }
+
                 }
                 questionsLayout.setVisibility(View.VISIBLE);
             }
             else if(DataCenter.isLogin ==  true){
                 Log.e("Login", "Login");
                 init();
-                projects = (LinearLayout) findViewById(R.id.projects);
-                projects.removeAllViews();
-                createSubmissionBins();
                 DataCenter.isLogin = false;
             }
-            else{
-                projects = (LinearLayout) findViewById(R.id.projects);
-                projects.removeAllViews();
-                createSubmissionBins();
-            }
         initAccounts();
-        if(!FormBase.viewDeque.isEmpty()){
+        if(!(categoryView.getVisibility() == View.VISIBLE)){
             mDrawerToggle.setDrawerIndicatorEnabled(false);
         }
         if(CurrentUser.countTable() > 0){
@@ -708,7 +754,9 @@ public class MainActivity extends ActionBarActivity {
                 questionImageField.setName(map.get("name").toString());
                 questionImageField.setLevel(Double.parseDouble(map.get("level").toString()));
                 questionImageField.setOrder(Double.parseDouble(map.get("order").toString()));
+                questionImageField.setAnswer(DataCenter.imageTextViewMap.get(map.get("name").toString()).getText().toString());
                 questionImageField.setElName(map.get("elName").toString());
+                PhotosImageView.insertPhoto(map.get("name").toString(), DataCenter.imageTextViewMap.get(map.get("name").toString()).getText().toString());
                 objectList.add(questionImageField);
             }
             else if(map.get("typeName").equals(switchQuestion)){
@@ -1149,10 +1197,133 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 if(toggleButton.getText().toString().equals("True")){
+                    Log.e("No Requirement", "True");
                     toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red_light));
                 }
                 else{
+                    Log.e("No Requirement", "False");
                     toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
+                }
+            }
+        });
+        choices.addView(toggleButton);
+        return questionSwitchView;
+    }
+
+    public QuestionSwitchView createQuestionSwitchViewWithRequirement(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup, final List<Object> requirement_true, final List<Object> requirement_false){
+        QuestionSwitchView questionSwitchView = new QuestionSwitchView(this);
+        TextView name = (TextView)questionSwitchView.findViewById(R.id.questionName);
+        final LinearLayout requirement = (LinearLayout)questionSwitchView.findViewById(R.id.requirement);
+        name.setText(questionName);
+        LinearLayout choices = (LinearLayout)questionSwitchView.findViewById(R.id.questionChoices);
+        final ToggleButton toggleButton = new ToggleButton(this);
+        toggleButton.setId(DataCenter.generateViewId());
+        if(isRepeater){
+            DataCenter.repeaterToggleButton.put(repeaterId +questionName, toggleButton);
+        }
+        else{
+            DataCenter.toggleButtonMap.put(questionName, toggleButton);
+        }
+        toggleButton.setTextOn("True");
+        toggleButton.setTextColor(context.getResources().getColor(R.color.white));
+        toggleButton.setTextSize(20);
+        toggleButton.setTextOff("False");
+        toggleButton.setChecked(false);
+        toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
+        toggleButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(toggleButton.getText().toString().equals("True")){
+                    Log.e("True", "True");
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red_light));
+                    requirement.removeAllViews();
+                    for(int i=0; i<requirement_true.size(); i++){
+                        final LinkedTreeMap<String, Object> requirementChild = (LinkedTreeMap<String, Object>) requirement_true.get(i);
+                        if(requirementChild.get("typeName").equals(dateField)){
+                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionDateFieldView);
+                            requirement.addView(questionDateFieldView);
+                        }
+                        else if(requirementChild.get("typeName").equals(imageField)){
+                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionImageFieldView);
+                            requirement.addView(questionImageFieldView);
+                        }
+                        else if(requirementChild.get("typeName").equals(switchQuestion)){
+                            QuestionSwitchView questionSwitchView  = createQuestionSwitchView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionSwitchView);
+                            requirement.addView(questionSwitchView);
+                        }
+                        else if(requirementChild.get("typeName").equals(numberField)){
+                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionNumberFieldView);
+                            requirement.addView(questionNumberFieldView);
+                        }
+                        else if(requirementChild.get("typeName").equals(multipleChoice)){
+                            List choices = (List)requirementChild.get("choices");
+                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionMultipleChoiceView);
+                            requirement.addView(questionMultipleChoiceView);
+                        }
+                        else if(requirementChild.get("typeName").equals(basicTextField)){
+                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionBasicTextField);
+                            requirement.addView(questionBasicTextField);
+                        }
+                        else if(requirementChild.get("typeName").equals(checkList)){
+                            List choices = (List)requirementChild.get("choices");
+                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionCheckListView);
+                            requirement.addView(questionCheckListView);
+                        }
+                    }
+                    requirement.setVisibility(View.VISIBLE);
+                }
+                else{
+                    Log.e("False", "False");
+                    toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
+                    requirement.removeAllViews();
+                    for(int i=0; i<requirement_false.size(); i++){
+                        final LinkedTreeMap<String, Object> requirementChild = (LinkedTreeMap<String, Object>) requirement_false.get(i);
+                        if(requirementChild.get("typeName").equals(dateField)){
+                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionDateFieldView);
+                            requirement.addView(questionDateFieldView);
+                        }
+                        else if(requirementChild.get("typeName").equals(imageField)){
+                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionImageFieldView);
+                            requirement.addView(questionImageFieldView);
+                        }
+                        else if(requirementChild.get("typeName").equals(switchQuestion)){
+                            QuestionSwitchView questionSwitchView  = createQuestionSwitchView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionSwitchView);
+                            requirement.addView(questionSwitchView);
+                        }
+                        else if(requirementChild.get("typeName").equals(numberField)){
+                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionNumberFieldView);
+                            requirement.addView(questionNumberFieldView);
+                        }
+                        else if(requirementChild.get("typeName").equals(multipleChoice)){
+                            List choices = (List)requirementChild.get("choices");
+                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionMultipleChoiceView);
+                            requirement.addView(questionMultipleChoiceView);
+                        }
+                        else if(requirementChild.get("typeName").equals(basicTextField)){
+                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionBasicTextField);
+                            requirement.addView(questionBasicTextField);
+                        }
+                        else if(requirementChild.get("typeName").equals(checkList)){
+                            List choices = (List)requirementChild.get("choices");
+                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionCheckListView);
+                            requirement.addView(questionCheckListView);
+                        }
+                    }
+                    requirement.setVisibility(View.VISIBLE);
                 }
             }
         });
@@ -1317,23 +1488,106 @@ public class MainActivity extends ActionBarActivity {
         return questionBasicTextField;
     }
 
-    public QuestionImageFieldView createQuestionImageFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
+    public QuestionImageFieldView createQuestionImageFieldView(String typeName, final String questionName, final boolean isRepeater, final String repeaterId, boolean isQuestionGroup){
         QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(this);
         TextView name = (TextView)questionImageFieldView.findViewById(R.id.questionName);
-        LinearLayout imageLayout = (LinearLayout)questionImageFieldView.findViewById(R.id.image);
+        final LinearLayout imageLayout = (LinearLayout)questionImageFieldView.findViewById(R.id.image);
         ImageView cameraButton = (ImageView)questionImageFieldView.findViewById(R.id.cameraButton);
         name.setText(questionName);
         cameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                imageLayout.removeAllViews();
                 dispatchTakePictureIntent();
                 DataCenter.saved = true;
                 DataCenter.questionsLayout = questionsLayout;
                 DataCenter.currentPath = mCurrentPhotoPath;
+                FormBase.isQuestionImage = true;
                 FormBase.isCaptured = true;
                 galleryAddPic();
+                final TextView textView = new TextView(MainActivity.this);
+                if(isRepeater){
+                    if(DataCenter.repeaterImageTextViewMap.containsKey(repeaterId+questionName)){
+                        DataCenter.repeaterImageTextViewMap.remove(repeaterId+questionName);
+                        DataCenter.repeaterImageTextViewMap.put(repeaterId+questionName, textView);
+                    }
+                    else{
+                        DataCenter.repeaterImageTextViewMap.put(repeaterId+questionName, textView);
+                    }
+                }
+                else{
+                    if(DataCenter.imageTextViewMap.containsKey(questionName)){
+                        DataCenter.imageTextViewMap.remove(questionName);
+                        DataCenter.imageTextViewMap.put(questionName, textView);
+                    }
+                    else{
+                        DataCenter.imageTextViewMap.put(questionName, textView);
+                    }
+                }
+                textView.setText(DataCenter.currentPath);
+                textView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        alertDialogWrapper = new AlertDialogWrapper.Builder(MainActivity.this);
+                        imageView = new ImageView(MainActivity.this);
+                        imageView.setImageBitmap(decodeSampledBitmapFromFile(textView.getText().toString(), 500, 500));
+                        alertDialogWrapper.setView(null).setMessage(null);
+                        alertDialogWrapper.setTitle("Image")
+                                .setView(imageView)
+                                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int whichButton) {
+                                        dialog.dismiss();
+                                        dialog.cancel();
+                                    }
+                                }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                dialog.dismiss();
+                                dialog.cancel();
+                            }
+                        }).show();
+                    }
+                });
+                imageLayout.addView(textView);
+                imageLayout.setVisibility(View.VISIBLE);
             }
         });
+        return questionImageFieldView;
+    }
+
+    public QuestionImageFieldView createQuestionImageFieldViewWithAnswer(String typeName, final String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup, String answer){
+        QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(this);
+        TextView name = (TextView)questionImageFieldView.findViewById(R.id.questionName);
+        final LinearLayout imageLayout = (LinearLayout)questionImageFieldView.findViewById(R.id.image);
+        ImageView cameraButton = (ImageView)questionImageFieldView.findViewById(R.id.cameraButton);
+        name.setText(questionName);
+        cameraButton.setVisibility(View.GONE);
+        final TextView textView = new TextView(MainActivity.this);
+        DataCenter.getImageTextViewMapPrevious.put(questionName, textView);
+        textView.setText(answer);
+        textView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                alertDialogWrapper = new AlertDialogWrapper.Builder(MainActivity.this);
+                imageView = new ImageView(MainActivity.this);
+                Picasso.with(MainActivity.this).load(DataCenter.GLOBAL_URL+"photos/attachments/photo/"+textView.getText().toString().split("/")[textView.getText().toString().split("/").length - 1]).resize(500,500).placeholder(R.drawable.progress_animation).into(imageView);
+                alertDialogWrapper.setView(null).setMessage(null);
+                alertDialogWrapper.setTitle("Image")
+                        .setView(imageView)
+                        .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                dialog.dismiss();
+                                dialog.cancel();
+                            }
+                        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        dialog.dismiss();
+                        dialog.cancel();
+                    }
+                }).show();
+            }
+        });
+        imageLayout.addView(textView);
+        imageLayout.setVisibility(View.VISIBLE);
         return questionImageFieldView;
     }
 
@@ -1532,7 +1786,15 @@ public class MainActivity extends ActionBarActivity {
                             questions.addView(questionImageFieldView);
                         }
                         else if(child.get("typeName").equals(switchQuestion)){
-                            QuestionSwitchView questionSwitchView = createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
+                             QuestionSwitchView questionSwitchView = null;
+//                             if(null != child.get("requirement")){
+//                                 if(Boolean.parseBoolean(child.get("requirement").toString())){
+//                                     questionSwitchView = createQuestionSwitchViewWithRequirement(child.get("typeName").toString(), child.get("name").toString(), false, null, true, (List) child.get("requirement_true"), (List) child.get("requirement_false"));
+//                                 }
+//                                 else{
+                                     questionSwitchView = createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
+//                                 }
+//                             }
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionSwitchView);
                             questions.addView(questionSwitchView);
                         }
@@ -1578,7 +1840,15 @@ public class MainActivity extends ActionBarActivity {
                 questionsLayout.addView(questionImageFieldView);
             }
             else if(map.get("typeName").equals(switchQuestion)){
-                QuestionSwitchView questionSwitchView = createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
+                QuestionSwitchView questionSwitchView = null;
+//                if(null != map.get("requirement")){
+//                    if(Boolean.parseBoolean(map.get("requirement").toString())){
+//                        questionSwitchView = createQuestionSwitchViewWithRequirement(map.get("typeName").toString(), map.get("name").toString(), false, null, true, (List) map.get("requirement_true"), (List) map.get("requirement_false"));
+//                    }
+//                    else{
+                        questionSwitchView = createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null, true);
+//                    }
+//                }
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionSwitchView);
                 questionsLayout.addView(questionSwitchView);
             }
@@ -1635,8 +1905,10 @@ public class MainActivity extends ActionBarActivity {
         Log.e("CardView Size: ", ""+FormBase.stringCardViewHashMap.size());
     }
 
+
     public void createPreviousForm(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Answers answer, final String formNameString){
         questionsLayout.removeAllViews();
+        DataCenter.getImageTextViewMapPrevious.clear();
         for(int i =0; i<form.getChildList().size(); i++){
             LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
             if(map.get("typeName").equals(questionGroup)){
@@ -1745,7 +2017,7 @@ public class MainActivity extends ActionBarActivity {
                 questionsLayout.addView(createQuestionDateFieldWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(imageField)){
-                questionsLayout.addView(createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false));
+                questionsLayout.addView(createQuestionImageFieldViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), false, null, false, map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(switchQuestion)){
                 questionsLayout.addView(createQuestionSwitchViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
@@ -1927,7 +2199,7 @@ public class MainActivity extends ActionBarActivity {
                 questionsLayout.addView(createQuestionDateFieldWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(imageField)){
-                questionsLayout.addView(createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false));
+                questionsLayout.addView(createQuestionImageFieldViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), false, null, false, map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(switchQuestion)){
                 questionsLayout.addView(createQuestionSwitchViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
@@ -2096,6 +2368,7 @@ public class MainActivity extends ActionBarActivity {
         List<Object> questionGroupRepeaterList = new ArrayList<>();
         for (int a = 0; a < childrenList.size(); a++) {
             LinkedTreeMap<String, Object> children = (LinkedTreeMap<String, Object>) childrenList.get(a);
+
             if (children.get("typeName").equals(imageField)) {
                 QuestionImageField questionImageField = new QuestionImageField();
                 questionImageField.setType(children.get("type").toString());
@@ -2105,23 +2378,18 @@ public class MainActivity extends ActionBarActivity {
                 questionImageField.setLevel(Double.parseDouble(children.get("level").toString()));
                 questionImageField.setOrder(Double.parseDouble(children.get("order").toString()));
                 questionImageField.setElName(children.get("elName").toString());
+                questionImageField.setAnswer(DataCenter.repeaterImageTextViewMap.get(id+children.get("name")).getText().toString());
                 questionGroupRepeaterList.add(questionImageField);
             }
             else if(children.get("typeName").equals(dateField)){
-
-                        QuestionDateField questionDateField = new QuestionDateField();
-                        questionDateField.setTypeName(children.get("typeName").toString());
-                        questionDateField.setName(children.get("name").toString());
-                        questionDateField.setLevel(Double.parseDouble(children.get("level").toString()));
-                        questionDateField.setOrder(Double.parseDouble(children.get("order").toString()));
-                        questionDateField.setElName(children.get("elName").toString());
-                        questionDateField.setAnswer(DataCenter.repeaterDateTextView.get(id+children.get("name")).getText().toString());
-                        questionGroupRepeaterList.add(questionDateField);
-
-
-
-
-
+                QuestionDateField questionDateField = new QuestionDateField();
+                questionDateField.setTypeName(children.get("typeName").toString());
+                questionDateField.setName(children.get("name").toString());
+                questionDateField.setLevel(Double.parseDouble(children.get("level").toString()));
+                questionDateField.setOrder(Double.parseDouble(children.get("order").toString()));
+                questionDateField.setElName(children.get("elName").toString());
+                questionDateField.setAnswer(DataCenter.repeaterDateTextView.get(id+children.get("name")).getText().toString());
+                questionGroupRepeaterList.add(questionDateField);
             }
             else if (children.get("typeName").equals(switchQuestion)) {
                 QuestionSwitch questionSwitch = new QuestionSwitch();
@@ -2502,11 +2770,17 @@ public class MainActivity extends ActionBarActivity {
         protected String doInBackground(String... params) {
             String answerURL = sendAnswers(currentFormURL, jsonAnswer, FormBase.SUBMISSION_BIN);
             String formName = Answers.getAnswerByURL(answerURL);
-            if(DataCenter.currentPath != null && DataCenter.currentPath != ""){
-                File file = new File(DataCenter.currentPath);
-                String response = sendPhoto(answerURL, "name", file);
-                PhotoObject photoObject = gson.fromJson(response, PhotoObject.class);
-                Photos.updatePhoto(formName, photoObject.getUrl());
+            if(!DataCenter.imageTextViewMap.isEmpty()){
+                for (Map.Entry<String, TextView> entry : DataCenter.getImageTextViewMapPrevious.entrySet())
+                {
+                    File file = new File(entry.getValue().getText().toString());
+                    String response = sendPhoto(answerURL, answerURL.split("/")[answerURL.split("/").length -1]+"_"+entry.getValue().getText().toString(), file);
+                    Log.e("Response Photo", response);
+                }
+//                File file = new File(DataCenter.currentPath);
+//                String response = sendPhoto(answerURL, "name", file);
+//                PhotoObject photoObject = gson.fromJson(response, PhotoObject.class);
+//                Photos.updatePhoto(formName, photoObject.getUrl());
             }
             return null;
         }
@@ -2623,6 +2897,7 @@ public class MainActivity extends ActionBarActivity {
                         else{
                             buttonForm.setBackgroundColor(context.getResources().getColor(R.color.yokohama_button_dark));
                         }
+
                         buttonForm.setTextColor(context.getResources().getColor(R.color.white));
                         buttonForm.setText(f.getName());
                         buttonForm.setOnClickListener(new View.OnClickListener() {
@@ -2630,7 +2905,14 @@ public class MainActivity extends ActionBarActivity {
                             public void onClick(View v) {
                                 currentFormURL = f.getUrl();
                                 formNameString = buttonForm.getText().toString();
+                                FormBase.FORM = Form.getFormByName(formNameString).getUrl().split("/")[Form.getFormByName(formNameString).getUrl().split("/").length-1];
                                 formView = (FormView) findViewById(R.id.formView);
+                                if(isNetworkAvailable()){
+                                    new GetAnswers(formView, formNameString).execute();
+                                }
+                                else{
+                                    Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                                }
                                 final TextView formLabel = (TextView) formView.findViewById(R.id.formLabel);
                                 formLabel.setText(formNameString);
                                 final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
@@ -2669,7 +2951,7 @@ public class MainActivity extends ActionBarActivity {
                                     public void onClick(View v) {
                                         final EditText input = new EditText(MainActivity.this);
                                         input.setHint("Form name");
-                                        new AlertDialog.Builder(MainActivity.this)
+                                        new AlertDialogWrapper.Builder(MainActivity.this)
                                                 .setTitle("Enter form name")
                                                 .setView(input)
                                                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
@@ -2762,6 +3044,7 @@ public class MainActivity extends ActionBarActivity {
             categoryCardView1.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    mDrawerToggle.setDrawerIndicatorEnabled(false);
                     Log.e("Instance", ""+(formsViewContainer.getChildAt(0) instanceof FormsView));
                     Log.e("Before Size", ""+FormBase.viewDeque.size());
                     FormBase.viewDeque.addLast((FormsView)formsViewContainer.getChildAt(0));
@@ -2841,7 +3124,7 @@ public class MainActivity extends ActionBarActivity {
                         public void onClick(View v) {
                             final EditText input = new EditText(MainActivity.this);
                             input.setHint("Form name");
-                            new AlertDialog.Builder(MainActivity.this)
+                            new AlertDialogWrapper.Builder(MainActivity.this)
                                     .setTitle("Enter form name")
                                     .setView(input)
                                     .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
@@ -3120,7 +3403,7 @@ public class MainActivity extends ActionBarActivity {
             //Toast.makeText(MainActivity.this, "Photo submission failed please check your network connection", Toast.LENGTH_LONG);
             e.printStackTrace();
         }
-
+        Log.e("Result", result);
         return result;
     }
 
@@ -3381,18 +3664,22 @@ public class MainActivity extends ActionBarActivity {
         protected void onPostExecute(String result) {
             LinearLayout retrieveForms = (LinearLayout)formView.findViewById(R.id.retrieveForms);
             retrieveForms.removeAllViews();
-            for(AnswersForApproval answersForApproval : AnswersForApproval.getAllAnswersForApproval()){
+            for(final AnswersForApproval answersForApproval : AnswersForApproval.getAllAnswersForApproval()){
                 AnswersView answersView = new AnswersView(MainActivity.this);
                 answersView.getSubmitted_by().setText(answersForApproval.getCreated_by());
                 answersView.getState().setText(answersForApproval.getState());
-                String date = answersForApproval.getDate_created().split("T")[0];
+                String date = answersForApproval.getDate_created();
                 answersView.getDate().setText(date);
                 answersView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         AnswersView a = (AnswersView) v;
-                        AnswersForApproval afa = AnswersForApproval.getAnswersForApprovalByCreatedBy(a.getSubmitted_by().getText().toString());
+                        final AnswersForApproval afa = AnswersForApproval.getAnswersForApprovalByCreatedBy(a.getSubmitted_by().getText().toString(), a.getDate().getText().toString());
                         Log.e("Prev Content", afa.getAnswer());
+                        Log.e("URL", afa.getUrl());
+                        DataCenter.DOWNLOAD_ID = afa.getUrl().split("/")[afa.getUrl().split("/").length-1];
+                        download.setVisibility(View.VISIBLE);
+                        sendEmail.setVisibility(View.VISIBLE);
                         com.dilimanlabs.formbase.objects.Form form = gson.fromJson(afa.getAnswer(), com.dilimanlabs.formbase.objects.Form.class);
                         createPreviousFormForApproval(form, questionsLayout, afa.getUrl(), afa.getEditing());
                         formView.setVisibility(View.GONE);
@@ -3621,56 +3908,94 @@ public class MainActivity extends ActionBarActivity {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    public static void expand(final View v) {
-        v.measure(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        final int targetHeight = v.getMeasuredHeight();
+    private static void downloadFile(String url) {
+        try {
+            URL u = new URL(url);
+            InputStream is = u.openStream();
+            DataInputStream dis = new DataInputStream(is);
 
-        v.getLayoutParams().height = 0;
-        v.setVisibility(View.VISIBLE);
-        Animation a = new Animation()
-        {
-            @Override
-            protected void applyTransformation(float interpolatedTime, Transformation t) {
-                v.getLayoutParams().height = interpolatedTime == 1
-                        ? LinearLayout.LayoutParams.WRAP_CONTENT
-                        : (int)(targetHeight * interpolatedTime);
-                v.requestLayout();
+            byte[] buffer = new byte[4096];
+            int length;
+
+            FileOutputStream fos = new FileOutputStream(new File(Environment.getExternalStorageDirectory() + "/" + url.split("/")[url.split("/").length -1]));
+            while ((length = dis.read(buffer))>0) {
+                fos.write(buffer, 0, length);
             }
-
-            @Override
-            public boolean willChangeBounds() {
-                return true;
-            }
-        };
-
-        // 1dp/ms
-        a.setDuration((int)(targetHeight / v.getContext().getResources().getDisplayMetrics().density));
-        v.startAnimation(a);
+        } catch (MalformedURLException mue) {
+            Log.e("SYNC getUpdate", "malformed url error", mue);
+        } catch (IOException ioe) {
+            Log.e("SYNC getUpdate", "io error", ioe);
+        } catch (SecurityException se) {
+            Log.e("SYNC getUpdate", "security error", se);
+        }
     }
 
-    public static void collapse(final View v) {
-        final int initialHeight = v.getMeasuredHeight();
+    private class DownloadFile extends AsyncTask<String, Void, String> {
+        ProgressDialog dialog;
+        private String url;
 
-        Animation a = new Animation()
-        {
-            @Override
-            protected void applyTransformation(float interpolatedTime, Transformation t) {
-                if(interpolatedTime == 1){
-                    v.setVisibility(View.GONE);
-                }else{
-                    v.getLayoutParams().height = initialHeight - (int)(initialHeight * interpolatedTime);
-                    v.requestLayout();
-                }
+        public DownloadFile(String url){
+            this.url = url;
+        }
+        @Override
+        protected String doInBackground(String... params) {
+            downloadFile(url);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+                Toast.makeText(MainActivity.this, "Downloaded successfully check your mobile drive and look for the file name "+url.split("/")[url.split("/").length - 1]+".csv", Toast.LENGTH_LONG).show();
             }
 
-            @Override
-            public boolean willChangeBounds() {
-                return true;
-            }
-        };
+        }
 
-        // 1dp/ms
-        a.setDuration((int)(initialHeight / v.getContext().getResources().getDisplayMetrics().density));
-        v.startAnimation(a);
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog = new ProgressDialog(MainActivity.this);
+            dialog.setMessage("Downloading data...");
+            dialog.setIndeterminate(false);
+            dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            dialog.setCancelable(true);
+            dialog.show();
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+        }
     }
+
+    public Bitmap decodeSampledBitmapFromFile(String imagePath, int reqWidth, int reqHeight) {
+
+        // First decode with inJustDecodeBounds=true to check dimensions
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(imagePath, options);
+
+        // Calculate inSampleSize
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+
+        // Decode bitmap with inSampleSize set
+        options.inJustDecodeBounds = false;
+        return BitmapFactory.decodeFile(imagePath, options);
+    }
+    public static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            if (width > height) {
+                inSampleSize = Math.round((float)height / (float)reqHeight);
+            } else {
+                inSampleSize = Math.round((float)width / (float)reqWidth);
+            }
+        }
+        return inSampleSize;
+    }
+
 }

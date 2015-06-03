@@ -24,13 +24,13 @@ public class DataCenter {
     public static boolean hasViews = false;
     public static Answers answers = null;
     public static  String TOKEN = "";
+    public static String DOWNLOAD_ID = "";
     public static String currentPath = "";
     public static List<Integer> repeaterIdList = new ArrayList<>();
     public static List<String> repeaterQuestionNameList = new ArrayList<>();
     public static Map<String, List> questionListMap = new HashMap<>();
     public static boolean isLogin = false;
-    public static final String GLOBAL_URL = "http://52.11.161.155/";
-
+    public static final String GLOBAL_URL = "http://192.168.0.7/";
     public static Map<String,EditText> editTextMap = new HashMap<>();
     public static Map<String, ToggleButton> toggleButtonMap = new HashMap<>();
     public static Map<Button, String> buttonMap = new HashMap<>();
@@ -38,6 +38,8 @@ public class DataCenter {
     public static Map<String, CheckBox> checkBoxMap = new HashMap<>();
     public static Map<String, RadioGroup> radioGroupMap = new HashMap<>();
     public static Map<String, TextView> dateTextViewMap = new HashMap<>();
+    public static Map<String, TextView> imageTextViewMap = new HashMap<>();
+    public static Map<String, TextView> getImageTextViewMapPrevious = new HashMap<>();
     public static boolean isDatePickRepeater = false;
     public static String datePickRepeaterID = "";
 
@@ -48,6 +50,7 @@ public class DataCenter {
     public static Map<String, RadioGroup> repeaterRadioGroup = new HashMap<>();
     public static Map<String, TextView> repeaterDateTextView = new HashMap<>();
     public static Map<String, EditText> repeaterNumberTextEditText = new HashMap<>();
+    public static Map<String, TextView> repeaterImageTextViewMap = new HashMap<>();
 
 
     public static LinearLayout questionsLayout = null;

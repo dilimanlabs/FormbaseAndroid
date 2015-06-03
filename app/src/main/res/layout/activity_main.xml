@@ -48,6 +48,23 @@
             android:src="@drawable/ic_action_camera"
             android:visibility="gone"
             />
+        <ImageView
+            android:id="@+id/download"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|right"
+            android:padding="2dp"
+            android:src="@drawable/ic_action_download"
+            android:visibility="gone"/>
+        <ImageView
+            android:id="@+id/sendEmail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|right"
+            android:paddingRight="20dp"
+            android:src="@drawable/ic_action_new_email"
+            android:visibility="gone"
+            />
 
     </android.support.v7.widget.Toolbar>
 

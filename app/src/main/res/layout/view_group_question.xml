@@ -101,7 +101,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="top|right"
                     android:text="Login"
-                    android:background="@drawable/remove_new"
+                    android:background="@drawable/ic_action_remove"
                     android:textColor="#ffffff"
                     android:textSize="20dp"
                     android:visibility="gone"
