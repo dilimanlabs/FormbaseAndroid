@@ -14,6 +14,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -23,8 +24,8 @@ import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
@@ -60,6 +61,7 @@ import com.dilimanlabs.formbase.model.PhotosImageView;
 import com.dilimanlabs.formbase.model.Projects;
 import com.dilimanlabs.formbase.objects.CategoryWrapper;
 import com.dilimanlabs.formbase.objects.Choices;
+import com.dilimanlabs.formbase.objects.Email;
 import com.dilimanlabs.formbase.objects.FormObjectWrapper;
 import com.dilimanlabs.formbase.objects.JsonAnswer;
 import com.dilimanlabs.formbase.objects.JsonAnswerWrapper;
@@ -86,9 +88,18 @@ import com.dilimanlabs.formbase.views.QuestionCheckListView;
 import com.dilimanlabs.formbase.views.QuestionDateFieldView;
 import com.dilimanlabs.formbase.views.QuestionGroupView;
 import com.dilimanlabs.formbase.views.QuestionImageFieldView;
+import com.dilimanlabs.formbase.views.QuestionLocationView;
 import com.dilimanlabs.formbase.views.QuestionMultipleChoiceView;
 import com.dilimanlabs.formbase.views.QuestionNumberFieldView;
 import com.dilimanlabs.formbase.views.QuestionSwitchView;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.gson.Gson;
@@ -117,6 +128,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -128,7 +140,7 @@ import java.util.Map;
 import java.util.Random;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private Gson gson;
     String result;
     private Button currentButton;
@@ -204,6 +216,10 @@ public class MainActivity extends ActionBarActivity {
     private ImageView sendEmail;
     private AlertDialogWrapper.Builder alertDialogWrapper;
     private ImageView imageView;
+    private MapFragment mapFragment;
+    private Thread.UncaughtExceptionHandler defaultUEH;
+    // handler listener
+    private Thread.UncaughtExceptionHandler _unCaughtExceptionHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -211,6 +227,7 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         formBase = (FormBase)getApplicationContext();
         init();
+        Thread.setDefaultUncaughtExceptionHandler(_unCaughtExceptionHandler);
     }
 
     public void init(){
@@ -274,13 +291,13 @@ public class MainActivity extends ActionBarActivity {
             public void onClick(View v) {
                 final EditText input = new EditText(MainActivity.this);
                 input.setInputType(InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS);
-                input.setHint("Your Email");
+                input.setHint("recepient@example.com;another_recepient@example.com;");
                 new AlertDialogWrapper.Builder(MainActivity.this)
-                        .setTitle("Enter your Email")
+                        .setTitle("Recipients")
                         .setView(input)
                         .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
-
+                                new SendEmail(input.getText().toString(), DataCenter.ANSWER_URL).execute();
                             }
                         }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
@@ -293,7 +310,7 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 Log.e("Click", "Download");
-                new DownloadFile("http://api.formbase.com.ph/download/answers/"+DataCenter.DOWNLOAD_ID).execute();
+                new DownloadFile(DataCenter.GLOBAL_URL+"download/answers/"+DataCenter.DOWNLOAD_ID).execute();
             }
         });
         capture = (ImageView)toolbar.findViewById(R.id.captureImage);
@@ -334,6 +351,10 @@ public class MainActivity extends ActionBarActivity {
         }
         projects = (LinearLayout) findViewById(R.id.projects);
         projects.removeAllViews();
+        _unCaughtExceptionHandler = UEH.UEHInit(defaultUEH);
+        mapFragment = (MapFragment) getFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
         createSubmissionBins();
     }
 
@@ -640,7 +661,6 @@ public class MainActivity extends ActionBarActivity {
                             questionNumberField.setLevel(Double.parseDouble(child.get("level").toString()));
                             questionNumberField.setOrder(Double.parseDouble(child.get("order").toString()));
                             questionNumberField.setElName(child.get("elName").toString());
-                            questionNumberField.setRanged(Boolean.parseBoolean(child.get("ranged").toString()));
                             questionNumberField.setMinimum(Double.parseDouble(child.get("minimum").toString()));
                             questionNumberField.setMaximum(Double.parseDouble(child.get("maximum").toString()));
                             questionNumberField.setAnswer(DataCenter.editTextMap.get(child.get("name").toString()).getText().toString());
@@ -1341,7 +1361,8 @@ public class MainActivity extends ActionBarActivity {
         toggleButton.setTextColor(context.getResources().getColor(R.color.white));
         toggleButton.setTextSize(20);
         toggleButton.setTextOff("False");
-        toggleButton.setChecked(false);
+        toggleButton.setChecked(Boolean.parseBoolean(answer));
+        toggleButton.setEnabled(false);
         toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1403,13 +1424,6 @@ public class MainActivity extends ActionBarActivity {
         name.setText(questionName);
         final TextView dateTextView = (TextView)questionDateField.findViewById(R.id.date);
         dateTextView.setText(answer);
-        dateTextView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dateId = questionName;
-                showDialog(999);
-            }
-        });
         DataCenter.dateTextViewMap.put(questionName, dateTextView);
         Log.e("Content", ""+questionName);
         return questionDateField;
@@ -1446,6 +1460,7 @@ public class MainActivity extends ActionBarActivity {
         answer.setInputType(InputType.TYPE_CLASS_NUMBER);
         answer.setLines(1);
         answer.setText(numberAnswer);
+        answer.setEnabled(false);
         questionAnswer.addView(answer);
         questionAnswer.setVisibility(View.VISIBLE);
         DataCenter.editTextMap.put(questionName, answer);
@@ -1483,6 +1498,7 @@ public class MainActivity extends ActionBarActivity {
         questionAnswer.addView(answer);
         answer.setLines(1);
         answer.setText(textFieldAnswer);
+        answer.setEnabled(false);
         questionAnswer.setVisibility(View.VISIBLE);
         DataCenter.editTextMap.put(questionName, answer);
         return questionBasicTextField;
@@ -1569,7 +1585,12 @@ public class MainActivity extends ActionBarActivity {
             public void onClick(View v) {
                 alertDialogWrapper = new AlertDialogWrapper.Builder(MainActivity.this);
                 imageView = new ImageView(MainActivity.this);
-                Picasso.with(MainActivity.this).load(DataCenter.GLOBAL_URL+"photos/attachments/photo/"+textView.getText().toString().split("/")[textView.getText().toString().split("/").length - 1]).resize(500,500).placeholder(R.drawable.progress_animation).into(imageView);
+                if(DataCenter.isDraft){
+                    imageView.setImageBitmap(decodeSampledBitmapFromFile(textView.getText().toString(), 500, 500));
+                }
+                else{
+                    Picasso.with(MainActivity.this).load(DataCenter.GLOBAL_URL+"photos/attachments/photo/"+textView.getText().toString().split("/")[textView.getText().toString().split("/").length - 1]).resize(500,500).placeholder(R.drawable.progress_animation).into(imageView);
+                }
                 alertDialogWrapper.setView(null).setMessage(null);
                 alertDialogWrapper.setTitle("Image")
                         .setView(imageView)
@@ -1673,6 +1694,7 @@ public class MainActivity extends ActionBarActivity {
             Log.e("Radio", "Radio");
             choicesLayout.addView(radioGroup);
         }
+        radioGroup.setEnabled(false);;
         return questionMultipleChoiceView;
     }
 
@@ -1718,9 +1740,26 @@ public class MainActivity extends ActionBarActivity {
             if(answer.contains(choice.get("name"))){
                 choiceCheckBox.setChecked(true);
             }
+            choiceCheckBox.setEnabled(false);
             questionChoices.addView(choiceCheckBox);
         }
         return questionCheckListView;
+    }
+
+    public QuestionLocationView createQuestionLocationView(String questionName){
+        final QuestionLocationView questionLocationView = new QuestionLocationView(MainActivity.this);
+        Log.e("Question Name", questionName);
+        Log.e("TextView", questionLocationView.getQuestionName().toString());
+        questionLocationView.getQuestionName().setText(questionName);
+        questionLocationView.getGetLocation().setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mapFragment.getView().setVisibility(View.VISIBLE);
+                DataCenter.latitude = questionLocationView.getLatitude();
+                DataCenter.longitude = questionLocationView.getLongitude();
+            }
+        });
+        return questionLocationView;
     }
 
     public void createAllQuestions(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Form fo, final String formName, final String formNameString){
@@ -1875,6 +1914,9 @@ public class MainActivity extends ActionBarActivity {
                 questionsLayout.addView(questionCheckListView);
 
             }
+            else if(map.get("typeName").equals("qLocation")){
+                questionsLayout.addView(createQuestionLocationView(map.get("name").toString()));
+            }
         }
         Button submit = new Button(this);
         submit.setText("Save as Draft");
@@ -1894,12 +1936,11 @@ public class MainActivity extends ActionBarActivity {
                     Log.e("Form", gson.toJson(newForm));
                     if(Answers.insertAnswer(fo, formName, jsonAnswer) && Photos.insertPhoto(formName, mCurrentPhotoPath)){
                         Log.e("Previous", "Previous");
-                            updateButtonAfterSubmission(previousForms, formNameString);
-                            Toast.makeText(MainActivity.this, "Form saved successfully.", Toast.LENGTH_SHORT).show();
+                        updateButtonAfterSubmission(previousForms, formNameString);
+                        Toast.makeText(MainActivity.this, "Form saved successfully.", Toast.LENGTH_SHORT).show();
                     }
                     backView(current, FormBase.viewDeque.removeLast());
                     capture.setVisibility(View.GONE);
-
             }
         });
         Log.e("CardView Size: ", ""+FormBase.stringCardViewHashMap.size());
@@ -1907,6 +1948,7 @@ public class MainActivity extends ActionBarActivity {
 
 
     public void createPreviousForm(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Answers answer, final String formNameString){
+        DataCenter.isDraft = true;
         questionsLayout.removeAllViews();
         DataCenter.getImageTextViewMapPrevious.clear();
         for(int i =0; i<form.getChildList().size(); i++){
@@ -2090,6 +2132,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void createPreviousFormForApproval(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final String url, final String editing){
+        DataCenter.isDraft = false;
         questionsLayout.removeAllViews();
         for(int i =0; i<form.getChildList().size(); i++){
             LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
@@ -2758,6 +2801,39 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
+    @Override
+    public void onMapReady(final GoogleMap googleMap) {
+        googleMap.setMyLocationEnabled(true);
+        mapFragment.getView().setVisibility(View.GONE);
+        googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(final LatLng latLng) {
+                googleMap.clear();
+                googleMap.addMarker(new MarkerOptions().position(latLng));
+                int height = mainLayout.getHeight();
+                Projection projection = googleMap.getProjection();
+                Point markerScreenPosition = projection.toScreenLocation(latLng);
+                Point pointHalfScreenAbove = new Point(markerScreenPosition.x,
+                        markerScreenPosition.y - ((int)(height / -5)));
+                LatLng aboveMarkerLatLng = projection
+                        .fromScreenLocation(pointHalfScreenAbove);
+                CameraUpdate center = CameraUpdateFactory.newLatLng(aboveMarkerLatLng);
+                googleMap.animateCamera(center);
+                new AlertDialogWrapper.Builder(MainActivity.this)
+                        .setTitle("Get this Location?")
+                        .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                DataCenter.latitude.setText(String.valueOf(latLng.latitude));
+                                DataCenter.longitude.setText(String.valueOf(latLng.longitude));
+                                mapFragment.getView().setVisibility(View.GONE);
+                            }
+                        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                }).show();
+            }
+        });
+    }
 
     private class SendAnswer extends AsyncTask<String, Void, String> {
         String formNameString;
@@ -3394,7 +3470,7 @@ public class MainActivity extends ActionBarActivity {
                 reader.close();
             }
             result = buffer.toString();
-            //Log.e("result", result);
+            Log.e("result", result);
             return result;
 
         }
@@ -3678,6 +3754,7 @@ public class MainActivity extends ActionBarActivity {
                         Log.e("Prev Content", afa.getAnswer());
                         Log.e("URL", afa.getUrl());
                         DataCenter.DOWNLOAD_ID = afa.getUrl().split("/")[afa.getUrl().split("/").length-1];
+                        DataCenter.ANSWER_URL = afa.getUrl();
                         download.setVisibility(View.VISIBLE);
                         sendEmail.setVisibility(View.VISIBLE);
                         com.dilimanlabs.formbase.objects.Form form = gson.fromJson(afa.getAnswer(), com.dilimanlabs.formbase.objects.Form.class);
@@ -3812,8 +3889,8 @@ public class MainActivity extends ActionBarActivity {
 
     public void createSubmissionBins(){
         projects.removeAllViews();
-        final Button allProjects = new Button(this);
         for(Projects p : Projects.getAllProjects()){
+            final Button allProjects = new Button(this);
             if(p.getName().equals("All")){
                 allProjects.setText(p.getName());
                 allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
@@ -3822,6 +3899,9 @@ public class MainActivity extends ActionBarActivity {
                 allProjects.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        mDrawerToggle.setDrawerIndicatorEnabled(true);
+                        download.setVisibility(View.GONE);
+                        sendEmail.setVisibility(View.GONE);
                         FormBase.BIN = "";
                         FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
                         backToCategoryView();
@@ -3862,6 +3942,9 @@ public class MainActivity extends ActionBarActivity {
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        mDrawerToggle.setDrawerIndicatorEnabled(true);
+                        download.setVisibility(View.GONE);
+                        sendEmail.setVisibility(View.GONE);
                         Button b = (Button)v;
                         Log.e("Label", ""+b.getText().toString());
                         label.setText(b.getText().toString());
@@ -3911,13 +3994,21 @@ public class MainActivity extends ActionBarActivity {
     private static void downloadFile(String url) {
         try {
             URL u = new URL(url);
+            URLConnection urlConnection = u.openConnection();
+            String [] content = urlConnection.getHeaderField("Content-Disposition").split("=");
+            String fileName = content[content.length-1];
+            StringBuilder sb = new StringBuilder(fileName);
+            sb.deleteCharAt(0);
+            sb.deleteCharAt(sb.length()-1);
+            String name = sb.toString();
+            Log.e("Name", name);
+            u.getFile();
             InputStream is = u.openStream();
             DataInputStream dis = new DataInputStream(is);
-
+            Log.e("dis", dis.toString());
             byte[] buffer = new byte[4096];
             int length;
-
-            FileOutputStream fos = new FileOutputStream(new File(Environment.getExternalStorageDirectory() + "/" + url.split("/")[url.split("/").length -1]));
+            FileOutputStream fos = new FileOutputStream(new File(Environment.getExternalStorageDirectory() +"/FormBase/"  + name));
             while ((length = dis.read(buffer))>0) {
                 fos.write(buffer, 0, length);
             }
@@ -3947,7 +4038,7 @@ public class MainActivity extends ActionBarActivity {
         protected void onPostExecute(String result) {
             if (dialog.isShowing()) {
                 dialog.dismiss();
-                Toast.makeText(MainActivity.this, "Downloaded successfully check your mobile drive and look for the file name "+url.split("/")[url.split("/").length - 1]+".csv", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Downloaded successfully downloaded check the FormBase folder on your drive to see the file.", Toast.LENGTH_LONG).show();
             }
 
         }
@@ -3996,6 +4087,156 @@ public class MainActivity extends ActionBarActivity {
             }
         }
         return inSampleSize;
+    }
+
+    protected String sendEmail(String recipients, String answer)
+    {
+        HttpURLConnection connection;
+        JsonAnswer ja = null;
+        InputStream inputStream;
+        InputStreamReader isr;
+        OutputStreamWriter request = null;
+        Email email = new Email();
+        email.setRecipients(recipients);
+        email.setAnswer(answer);
+        String data = gson.toJson(email);
+        Log.e("Json: ", data);
+        URL url = null;
+        String response = null;
+
+        try
+        {
+            url = new URL(DataCenter.GLOBAL_URL+"sent_emails/");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Authorization", "Token " +accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestMethod("POST");
+            request = new OutputStreamWriter(connection.getOutputStream());
+            request.write(data);
+            request.flush();
+            request.close();
+            Log.e("request code",""+ connection.getResponseCode());
+            String line = "";
+            if(connection.getResponseCode() == 400){
+                inputStream = connection.getErrorStream();
+                isr = new InputStreamReader(inputStream);
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                response = sb.toString();
+                Log.e("Response: ", response);
+                isr.close();
+                reader.close();
+                connection.disconnect();
+            }
+            else if(connection.getResponseCode() == 500){
+                inputStream = connection.getErrorStream();
+                isr = new InputStreamReader(inputStream);
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                response = sb.toString();
+                Log.e("Response: ", response);
+                isr.close();
+                reader.close();
+                connection.disconnect();
+            }
+            else{
+                inputStream = connection.getInputStream();
+                isr = new InputStreamReader(inputStream);
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                response = sb.toString();
+                Log.e("Response: ", response);
+                isr.close();
+                reader.close();
+                connection.disconnect();
+            }
+
+
+
+
+        }
+        catch(MalformedURLException m){
+            Log.e("Malformed", m.getMessage());
+        }
+        catch(IOException e)
+        {
+            Toast.makeText(MainActivity.this, "Email sumbission failed please check your network connection", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+            Log.e("Error", e.toString());
+
+        }
+        if(ja == null){
+            return "";
+        } else{
+            return ja.getUrl();
+        }
+
+    }
+
+    private class SendEmail extends AsyncTask<String, Void, String> {
+        ProgressDialog dialog;
+        private String recipients;
+        private String answer;
+
+        public SendEmail(String recipients, String answer){
+            this.recipients = recipients;
+            this.answer = answer;
+        }
+        @Override
+        protected String doInBackground(String... params) {
+            sendEmail(recipients, answer);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+                Toast.makeText(MainActivity.this, "Email sent successfully.", Toast.LENGTH_LONG).show();
+            }
+
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog = new ProgressDialog(MainActivity.this);
+            dialog.setMessage("Sending email...");
+            dialog.setIndeterminate(false);
+            dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            dialog.setCancelable(true);
+            dialog.show();
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+        }
+    }
+
+    public boolean isAllRadioButtonChecked(Map<String, RadioGroup> map){
+        for (Map.Entry<String, RadioGroup> entry : map.entrySet())
+        {
+            if (entry.getValue().getCheckedRadioButtonId() == -1)
+            {
+                entry.getValue().requestFocus();
+                return false;
+            }
+        }
+        return true;
     }
 
 }

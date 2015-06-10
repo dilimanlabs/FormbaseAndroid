@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:res-auto="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:animateLayoutChanges="true"
+        android:background="@color/white"
+        android:orientation="vertical"
+        >
+
+        <TextView
+            android:id="@+id/questionName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Location"
+            android:textColor="@color/text_color"
+            android:textSize="20dp"
+            android:layout_marginTop="20dp"
+            android:padding="10dp"
+            />
+
+        <EditText
+            style="@style/Widget.AppCompat.EditText"
+            android:id="@+id/name_of_establishment"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Name of Establishment"
+            android:textSize="20dp"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"/>
+        <EditText
+            style="@style/Widget.AppCompat.EditText"
+            android:id="@+id/address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Address"
+            android:textSize="20dp"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"/>
+        <EditText
+            style="@style/Widget.AppCompat.EditText"
+            android:id="@+id/contact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Contact"
+            android:textSize="20dp"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"/>
+        <EditText
+            style="@style/Widget.AppCompat.EditText"
+            android:id="@+id/operating_hours"
+            android:layout_width="match_parent"
+            android:hint="Operating Hours"
+            android:layout_height="wrap_content"
+            android:textSize="20dp"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/text_color"
+            android:text="Latitude"
+            android:textSize="15dp"
+            android:clickable="true"
+            android:padding="10dp"/>
+
+        <TextView
+            android:id="@+id/latitude"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/text_color"
+            android:textSize="15dp"
+            android:clickable="true"
+            android:padding="10dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/text_color"
+            android:text="Longitude"
+            android:textSize="15dp"
+            android:clickable="true"
+            android:padding="10dp"/>
+
+        <TextView
+            android:id="@+id/longitude"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/text_color"
+            android:textSize="15dp"
+            android:clickable="true"
+            android:padding="10dp"/>
+
+        <Button
+            android:id="@+id/getLocation"
+            android:layout_marginTop="10dp"
+            android:text="Tap to get the location in map"
+            android:textColor="@color/white"
+            android:background="@color/yokohama_black"
+            android:layout_width="match_parent"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+</merge>
