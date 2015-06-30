@@ -35,7 +35,7 @@
             android:textColor="@color/white"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Categories"
+            android:text="FormBase"
             android:padding="2dp"
             android:textSize="20dp"
             />
@@ -63,6 +63,15 @@
             android:layout_gravity="top|right"
             android:paddingRight="20dp"
             android:src="@drawable/ic_action_new_email"
+            android:visibility="gone"
+            />
+        <ImageView
+            android:id="@+id/upload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|right"
+            android:paddingRight="20dp"
+            android:src="@drawable/upload"
             android:visibility="gone"
             />
 

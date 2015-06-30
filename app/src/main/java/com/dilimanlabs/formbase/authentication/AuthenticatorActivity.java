@@ -86,6 +86,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
         login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                login.setEnabled(false);
                 clearData();
                 submit();
             }
@@ -142,6 +143,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
                     @Override
                     protected void onPostExecute(Intent intent) {
                         if (intent.hasExtra(KEY_ERROR_MESSAGE)) {
+                            login.setEnabled(true);
                             Toast.makeText(AuthenticatorActivity.this, "Username and password does not match", Toast.LENGTH_LONG).show();
                             if (dialog.isShowing()) {
                                 dialog.dismiss();
@@ -162,16 +164,18 @@ public class AuthenticatorActivity extends ActionBarActivity {
                         dialog.setMessage("Logging in...");
                         dialog.setIndeterminate(false);
                         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                        dialog.setCancelable(true);
+                        dialog.setCancelable(false);
                         dialog.show();
                     }
                 }.execute();
             }
             else{
+                login.setEnabled(true);
                 Toast.makeText(AuthenticatorActivity.this, "Username or Password cannot be empty.", Toast.LENGTH_LONG).show();
             }
         }
         else{
+            login.setEnabled(true);
             Toast.makeText(AuthenticatorActivity.this, "Please connect the device to the internet to login.", Toast.LENGTH_LONG).show();
         }
     }
@@ -207,6 +211,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
         try
         {
             url = new URL(DataCenter.GLOBAL_URL+"formbases/?starting=True");
+            Log.e("URL", DataCenter.GLOBAL_URL+"formbases/?starting=True");
             connection = (HttpURLConnection) url.openConnection();
             Log.e("get Forms token", authtoken);
             connection.setRequestMethod("GET");
@@ -271,6 +276,7 @@ public class AuthenticatorActivity extends ActionBarActivity {
         try
         {
             url = new URL(DataCenter.GLOBAL_URL+"formbases/?starting=False");
+            Log.e("URL", DataCenter.GLOBAL_URL+"formbases/?starting=False");
             connection = (HttpURLConnection) url.openConnection();
             Log.e("get Forms token", authtoken);
             connection.setRequestMethod("GET");
@@ -528,5 +534,9 @@ public class AuthenticatorActivity extends ActionBarActivity {
         }else{
             return false;
         }
+    }
+
+    @Override
+    public void onBackPressed() {
     }
 }

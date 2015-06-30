@@ -29,6 +29,7 @@ public class FormBase extends Application {
     public static  List<AnswersForApproval> answersForApprovalListForViewing = new ArrayList<>();
     public static List<Button> buttonList = new ArrayList<>();
     public static Map<Button, String> buttonStringMap = new HashMap<>();
+    public static Map<String, Button> buttonMap = new HashMap<>();
     public static String BIN = "";
     public static String SUBMISSION_BIN = "";
     public static Map<String, CardView> stringCardViewHashMap= new HashMap<>();
@@ -45,6 +46,22 @@ public class FormBase extends Application {
 
     public static FormBase getInstance() {
         return formbaseSingleton;
+    }
+
+    public static void clearAllStaticData(){
+        buttonList.clear();
+        buttonStringMap.clear();
+        buttonMap.clear();
+        BIN = "";
+        SUBMISSION_BIN = "";
+        currentPath = "";
+        isSaved = false;
+        isCaptured = false;
+        isQuestionImage = false;
+        viewDeque.clear();
+        stringCardViewHashMap.clear();
+        FORM = "";
+        currentButtonText = "";
     }
 
 }

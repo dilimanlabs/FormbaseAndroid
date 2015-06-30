@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DataCenter {
     public static boolean hasViews = false;
+    public static boolean isQuestionGroup = false;
     public static Answers answers = null;
     public static  String TOKEN = "";
     public static String DOWNLOAD_ID = "";
@@ -30,11 +31,12 @@ public class DataCenter {
     public static TextView longitude = null;
     public static boolean isDraft = false;
     public static String currentPath = "";
+    public static boolean isLogout = false;
     public static List<Integer> repeaterIdList = new ArrayList<>();
     public static List<String> repeaterQuestionNameList = new ArrayList<>();
     public static Map<String, List> questionListMap = new HashMap<>();
     public static boolean isLogin = false;
-    public static final String GLOBAL_URL = "http://api.formbase.com.ph:8000/";
+    public static final String GLOBAL_URL = "http://api.formbase.com.ph/";
     public static Map<String,EditText> editTextMap = new HashMap<>();
     public static Map<String, ToggleButton> toggleButtonMap = new HashMap<>();
     public static Map<Button, String> buttonMap = new HashMap<>();
@@ -44,6 +46,7 @@ public class DataCenter {
     public static Map<String, TextView> dateTextViewMap = new HashMap<>();
     public static Map<String, TextView> imageTextViewMap = new HashMap<>();
     public static Map<String, TextView> getImageTextViewMapPrevious = new HashMap<>();
+    public static List<TextView> imageTextViewList = new ArrayList<>();
     public static boolean isDatePickRepeater = false;
     public static String datePickRepeaterID = "";
 
@@ -58,6 +61,7 @@ public class DataCenter {
 
 
     public static LinearLayout questionsLayout = null;
+    public static final String STATUS = "FOR EMAIL";
     public static Answers answer = null;
     public static boolean saved = false;
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
@@ -70,5 +74,44 @@ public class DataCenter {
                 return result;
             }
         }
+    }
+    public static void clearAllStaticVariables(){
+        hasViews = false;
+        isQuestionGroup = false;
+        answers = null;
+        TOKEN = "";
+        DOWNLOAD_ID = "";
+        ANSWER_URL = "";
+        latitude = null;
+        longitude = null;
+        isDraft = false;
+        currentPath = "";
+        isLogout = false;
+        repeaterIdList.clear();
+        repeaterQuestionNameList.clear();
+        questionListMap.clear();
+        isLogin = false;
+        editTextMap.clear();
+        toggleButtonMap.clear();
+        spinnerMap.clear();
+        checkBoxMap.clear();
+        radioGroupMap.clear();
+        dateTextViewMap.clear();
+        imageTextViewMap.clear();
+        getImageTextViewMapPrevious.clear();
+        imageTextViewList.clear();
+        isDatePickRepeater = false;
+        datePickRepeaterID = "";
+        repeaterBasicTextEditText.clear();
+        repeaterToggleButton.clear();
+        repeaterSpinner.clear();
+        repeaterCheckBox.clear();
+        repeaterRadioGroup.clear();
+        repeaterDateTextView.clear();
+        repeaterNumberTextEditText.clear();
+        repeaterImageTextViewMap.clear();
+        questionsLayout = null;
+        answer = null;
+        saved = false;
     }
 }

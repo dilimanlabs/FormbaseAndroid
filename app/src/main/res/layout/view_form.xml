@@ -47,6 +47,18 @@
                 android:padding="10dp"
                 />
 
+            <com.melnykov.fab.FloatingActionButton
+                android:id="@+id/addButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|right"
+                android:layout_margin="16dp"
+                android:src="@drawable/add_new"
+                android:visibility="gone"
+                fab:fab_colorNormal="@color/yokohama_red"
+                fab:fab_colorPressed="@color/pressed"
+                fab:fab_colorRipple="@color/yokohama_red" />
+
             <LinearLayout
                 android:orientation="vertical"
                 android:id="@+id/previousForms"
@@ -72,18 +84,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:visibility="gone"/>
-
-            <com.melnykov.fab.FloatingActionButton
-                android:id="@+id/addButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|right"
-                android:layout_margin="16dp"
-                android:src="@drawable/add_new"
-                android:visibility="gone"
-                fab:fab_colorNormal="@color/yokohama_red"
-                fab:fab_colorPressed="@color/pressed"
-                fab:fab_colorRipple="@color/yokohama_red" />
 
         </LinearLayout>
     </ScrollView>

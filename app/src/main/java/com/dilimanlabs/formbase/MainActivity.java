@@ -34,6 +34,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -218,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageView imageView;
     private MapFragment mapFragment;
     private Thread.UncaughtExceptionHandler defaultUEH;
+    private ImageView upload;
     // handler listener
     private Thread.UncaughtExceptionHandler _unCaughtExceptionHandler;
 
@@ -225,8 +227,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.e("On Create", "On Create");
         formBase = (FormBase)getApplicationContext();
         init();
+        if(CurrentUser.countTable() > 0){
+            email.setText(CurrentUser.getCurrentUser().getEmail());
+            username.setText(CurrentUser.getCurrentUser().getUsername());
+            Log.e("Projects", ""+Projects.countTable());
+        }
+        try{
+            retrieveAllData(questionsLayout, innerQuestionsLayout, original);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
         Thread.setDefaultUncaughtExceptionHandler(_unCaughtExceptionHandler);
     }
 
@@ -250,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerToggle = new ActionBarDrawerToggle(this,  mDrawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         mDrawerLayout.setDrawerListener(mDrawerToggle);
-        mDrawerToggle.syncState();
+        mDrawerToggle.setDrawerIndicatorEnabled(true);
         questionsLayout = (LinearLayout) findViewById(R.id.questionsLayout);
         path = (TextView)questionsLayout.findViewById(R.id.attachment);
         innerQuestionsLayout = (LinearLayout) findViewById(R.id.innerQuestionsLayout);
@@ -261,6 +275,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View v) {
                 sendEmail.setVisibility(View.GONE);
                 download.setVisibility(View.GONE);
+                if(null != upload){
+                    upload.setVisibility(View.GONE);
+                }
                 if(capture != null){
                     capture.setVisibility(View.GONE);
                 }
@@ -310,7 +327,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 Log.e("Click", "Download");
-                new DownloadFile(DataCenter.GLOBAL_URL+"download/answers/"+DataCenter.DOWNLOAD_ID).execute();
+                new DownloadFile(DataCenter.GLOBAL_URL+"download/answers/"+DataCenter.DOWNLOAD_ID+"/?filetype=pdf").execute();
             }
         });
         capture = (ImageView)toolbar.findViewById(R.id.captureImage);
@@ -343,12 +360,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         loginView = (LoginView) findViewById(R.id.loginView);
         categoryView = (CategoryView) findViewById(R.id.categoryView);
         gson = new Gson();
-        try{
-            retrieveAllData(questionsLayout, innerQuestionsLayout, original);
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
         projects = (LinearLayout) findViewById(R.id.projects);
         projects.removeAllViews();
         _unCaughtExceptionHandler = UEH.UEHInit(defaultUEH);
@@ -368,6 +379,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void logout(){
+        DataCenter.isLogout = true;
         new AlertDialogWrapper.Builder(MainActivity.this)
                 .setTitle("Are you sure?")
                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
@@ -376,12 +388,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         accounts = accountManager.getAccountsByType(AccountGeneral.ACCOUNT_TYPE);
                         accountManager.removeAccount(accounts[0], null, null);
                         ActiveAndroid.getDatabase().close();
+                        FormBase.clearAllStaticData();
+                        DataCenter.clearAllStaticVariables();
                         final Intent intent = new Intent(MainActivity.this, MainActivity.class);
                         startActivity(intent);
                     }
                 }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
-                // Do nothing.
+                DataCenter.isLogout = false;
             }
         }).show();
     }
@@ -391,6 +405,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onPause(){
         Log.e("Pause", "pause");
         super.onPause();
+        if(!DataCenter.isLogout){
             if(questionsLayout.getVisibility() == View.VISIBLE || FormBase.isCaptured == true){
                 Log.e("On Pause", "QuestionsLayout");
                 FormBase.isSaved = true;
@@ -401,6 +416,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             DataCenter.currentPath = mCurrentPhotoPath;
             FormBase.currentButtonText = currentButton.getText().toString();
             pause = true;
+        }
     }
     @Override
     public void onDestroy(){
@@ -412,6 +428,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onResume() {
         super.onResume();
+        initAccounts();
         Log.e("onRes","");
         Log.e("IsSaved: ", ""+FormBase.isSaved);
             if(FormBase.isSaved == true){
@@ -440,17 +457,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             else if(DataCenter.isLogin ==  true){
                 Log.e("Login", "Login");
                 init();
+                if(CurrentUser.countTable() > 0){
+                    email.setText(CurrentUser.getCurrentUser().getEmail());
+                    username.setText(CurrentUser.getCurrentUser().getUsername());
+                    Log.e("Projects", ""+Projects.countTable());
+                }
+                try{
+                    retrieveAllData(questionsLayout, innerQuestionsLayout, original);
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                }
                 DataCenter.isLogin = false;
             }
-        initAccounts();
         if(!(categoryView.getVisibility() == View.VISIBLE)){
+            Log.e("DrawerToggle", "DrawerToggle");
             mDrawerToggle.setDrawerIndicatorEnabled(false);
-        }
-        if(CurrentUser.countTable() > 0){
-            email.setText(CurrentUser.getCurrentUser().getEmail());
-            username.setText(CurrentUser.getCurrentUser().getUsername());
-            Log.e("Projects", ""+Projects.countTable());
-
         }
     }
 
@@ -468,6 +490,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if(map.get("typeName").equals(questionGroup)){
                 QuestionGroup questionGroup = new QuestionGroup();
                 questionGroup.setType(map.get("type").toString());
+                String questionGroupName = map.get("name").toString();
                 questionGroup.setName(map.get("name").toString());
                 questionGroup.setTypeName(map.get("typeName").toString());
                 List<Object> objectListInner = new ArrayList<>();
@@ -626,7 +649,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             questionDateField.setLevel(Double.parseDouble(child.get("level").toString()));
                             questionDateField.setOrder(Double.parseDouble(child.get("order").toString()));
                             questionDateField.setElName(child.get("elName").toString());
-                            questionDateField.setAnswer(DataCenter.dateTextViewMap.get(child.get("name").toString()).getText().toString());
+                            questionDateField.setAnswer(DataCenter.dateTextViewMap.get(questionGroupName+child.get("name").toString()).getText().toString());
                             objectListInner.add(questionDateField);
                         }
                         else if(child.get("typeName").equals(imageField)){
@@ -638,6 +661,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             Log.e("Number", "" + child.get("level"));
                             questionImageField.setLevel(Double.parseDouble(child.get("level").toString()));
                             questionImageField.setOrder(Double.parseDouble(child.get("order").toString()));
+                            if(!DataCenter.imageTextViewMap.containsKey(questionGroupName+child.get("name"))){
+                                questionImageField.setAnswer("No attachment");
+                            }else{
+                                questionImageField.setAnswer(DataCenter.imageTextViewMap.get(questionGroupName+child.get("name").toString()).getText().toString());
+                            }
                             questionImageField.setElName(child.get("elName").toString());
                             objectListInner.add(questionImageField);
                         }
@@ -649,8 +677,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             questionSwitch.setLevel(Double.parseDouble(child.get("level").toString()));
                             questionSwitch.setOrder(Double.parseDouble(child.get("order").toString()));
                             questionSwitch.setElName(child.get("elName").toString());
-                            Log.e("Answer", ""+DataCenter.toggleButtonMap.get(child.get("name").toString()).getText().toString());
-                            questionSwitch.setAnswer(DataCenter.toggleButtonMap.get(child.get("name").toString()).getText().toString());
+                            questionSwitch.setAnswer(DataCenter.toggleButtonMap.get(questionGroupName+child.get("name").toString()).getText().toString());
                             objectListInner.add(questionSwitch);
                         }
                         else if(child.get("typeName").equals(numberField)){
@@ -663,7 +690,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             questionNumberField.setElName(child.get("elName").toString());
                             questionNumberField.setMinimum(Double.parseDouble(child.get("minimum").toString()));
                             questionNumberField.setMaximum(Double.parseDouble(child.get("maximum").toString()));
-                            questionNumberField.setAnswer(DataCenter.editTextMap.get(child.get("name").toString()).getText().toString());
+                            questionNumberField.setAnswer(DataCenter.editTextMap.get(questionGroupName+child.get("name").toString()).getText().toString());
                             objectListInner.add(questionNumberField);
 
                         }
@@ -684,9 +711,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 choicesList.add(c);
                             }
                             questionMultipleChoice.setChoices(choicesList);
-                            int radioButtonID = DataCenter.radioGroupMap.get(child.get("name").toString()).getCheckedRadioButtonId();
-                            RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(child.get("name").toString()).findViewById(radioButtonID);
-                            Spinner spinner = DataCenter.spinnerMap.get(child.get("name").toString());
+                            int radioButtonID = DataCenter.radioGroupMap.get(questionGroupName+child.get("name").toString()).getCheckedRadioButtonId();
+                            RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(questionGroupName+child.get("name").toString()).findViewById(radioButtonID);
+                            Spinner spinner = DataCenter.spinnerMap.get(questionGroupName+child.get("name").toString());
                             if(choices.size() >= 10){
                                 questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
                             }
@@ -703,7 +730,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             questionTextField.setLevel(Double.parseDouble(child.get("level").toString()));
                             questionTextField.setOrder(Double.parseDouble(child.get("order").toString()));
                             questionTextField.setElName(child.get("elName").toString());
-                            questionTextField.setAnswer(DataCenter.editTextMap.get(child.get("name").toString()).getText().toString());
+                            Log.e("Answer", DataCenter.editTextMap.get(questionGroupName+child.get("name").toString()).getText().toString());
+                            questionTextField.setAnswer(DataCenter.editTextMap.get(questionGroupName+child.get("name").toString()).getText().toString());
                             objectListInner.add(questionTextField);
                         }
                         else if(child.get("typeName").equals(checkList)){
@@ -721,7 +749,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 LinkedTreeMap<String, Object> choice = (LinkedTreeMap<String, Object>) choices.get(z);
                                 Choices c = new Choices(choice.get("name").toString());
                                 choicesList.add(c);
-                                CheckBox checkBox = DataCenter.checkBoxMap.get(choice.get("name").toString()+child.get("name").toString());
+                                CheckBox checkBox = DataCenter.checkBoxMap.get(questionGroupName+choice.get("name").toString()+child.get("name").toString());
                                 if(checkBox.isChecked()){
                                     answers.add(new com.dilimanlabs.formbase.objects.Answers(checkBox.getText().toString()));
                                 }
@@ -774,9 +802,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 questionImageField.setName(map.get("name").toString());
                 questionImageField.setLevel(Double.parseDouble(map.get("level").toString()));
                 questionImageField.setOrder(Double.parseDouble(map.get("order").toString()));
-                questionImageField.setAnswer(DataCenter.imageTextViewMap.get(map.get("name").toString()).getText().toString());
+                if(DataCenter.imageTextViewMap.containsKey(map.get("name").toString())){
+                    questionImageField.setAnswer(DataCenter.imageTextViewMap.get(map.get("name").toString()).getText().toString());
+                    PhotosImageView.insertPhoto(map.get("name").toString(), DataCenter.imageTextViewMap.get(map.get("name").toString()).getText().toString());
+                }
+                else{
+                    questionImageField.setAnswer("No attachment");
+                    PhotosImageView.insertPhoto(map.get("name").toString(), "No attachment");
+                }
                 questionImageField.setElName(map.get("elName").toString());
-                PhotosImageView.insertPhoto(map.get("name").toString(), DataCenter.imageTextViewMap.get(map.get("name").toString()).getText().toString());
                 objectList.add(questionImageField);
             }
             else if(map.get("typeName").equals(switchQuestion)){
@@ -822,13 +856,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     choicesList.add(c);
                 }
                 questionMultipleChoice.setChoices(choicesList);
-                int radioButtonID = DataCenter.radioGroupMap.get(map.get("name").toString()).getCheckedRadioButtonId();
-                RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(map.get("name").toString()).findViewById(radioButtonID);
-                Spinner spinner = DataCenter.spinnerMap.get(map.get("name").toString());
+
                 if(choices.size() >= 10){
+                    Spinner spinner = DataCenter.spinnerMap.get(map.get("name").toString());
                     questionMultipleChoice.setAnswer(String.valueOf(spinner.getSelectedItem()));
                 }
                 else{
+                    int radioButtonID = DataCenter.radioGroupMap.get(map.get("name").toString()).getCheckedRadioButtonId();
+                    RadioButton radioButton = (RadioButton)DataCenter.radioGroupMap.get(map.get("name").toString()).findViewById(radioButtonID);
                     questionMultipleChoice.setAnswer(radioButton.getText().toString());
                 }
                 objectList.add(questionMultipleChoice);
@@ -1194,7 +1229,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    public QuestionSwitchView createQuestionSwitchView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
+    public QuestionSwitchView createQuestionSwitchView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup, String questionGroupName){
         QuestionSwitchView questionSwitchView = new QuestionSwitchView(this);
         TextView name = (TextView)questionSwitchView.findViewById(R.id.questionName);
         name.setText(questionName);
@@ -1204,13 +1239,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if(isRepeater){
             DataCenter.repeaterToggleButton.put(repeaterId +questionName, toggleButton);
         }
+        else if(isQuestionGroup){
+            DataCenter.toggleButtonMap.put(questionGroupName +questionName, toggleButton);
+        }
         else{
             DataCenter.toggleButtonMap.put(questionName, toggleButton);
         }
-        toggleButton.setTextOn("True");
+        toggleButton.setTextOn("Yes");
         toggleButton.setTextColor(context.getResources().getColor(R.color.white));
         toggleButton.setTextSize(20);
-        toggleButton.setTextOff("False");
+        toggleButton.setTextOff("No");
         toggleButton.setChecked(false);
         toggleButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
         toggleButton.setOnClickListener(new View.OnClickListener() {
@@ -1260,39 +1298,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     for(int i=0; i<requirement_true.size(); i++){
                         final LinkedTreeMap<String, Object> requirementChild = (LinkedTreeMap<String, Object>) requirement_true.get(i);
                         if(requirementChild.get("typeName").equals(dateField)){
-                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionDateFieldView);
                             requirement.addView(questionDateFieldView);
                         }
                         else if(requirementChild.get("typeName").equals(imageField)){
-                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionImageFieldView);
                             requirement.addView(questionImageFieldView);
                         }
                         else if(requirementChild.get("typeName").equals(switchQuestion)){
-                            QuestionSwitchView questionSwitchView  = createQuestionSwitchView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionSwitchView questionSwitchView  = createQuestionSwitchView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionSwitchView);
                             requirement.addView(questionSwitchView);
                         }
                         else if(requirementChild.get("typeName").equals(numberField)){
-                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionNumberFieldView);
                             requirement.addView(questionNumberFieldView);
                         }
                         else if(requirementChild.get("typeName").equals(multipleChoice)){
                             List choices = (List)requirementChild.get("choices");
-                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionMultipleChoiceView);
                             requirement.addView(questionMultipleChoiceView);
                         }
                         else if(requirementChild.get("typeName").equals(basicTextField)){
-                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionBasicTextField);
                             requirement.addView(questionBasicTextField);
                         }
                         else if(requirementChild.get("typeName").equals(checkList)){
                             List choices = (List)requirementChild.get("choices");
-                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionCheckListView);
                             requirement.addView(questionCheckListView);
                         }
@@ -1306,39 +1344,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     for(int i=0; i<requirement_false.size(); i++){
                         final LinkedTreeMap<String, Object> requirementChild = (LinkedTreeMap<String, Object>) requirement_false.get(i);
                         if(requirementChild.get("typeName").equals(dateField)){
-                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionDateFieldView);
                             requirement.addView(questionDateFieldView);
                         }
                         else if(requirementChild.get("typeName").equals(imageField)){
-                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionImageFieldView);
                             requirement.addView(questionImageFieldView);
                         }
                         else if(requirementChild.get("typeName").equals(switchQuestion)){
-                            QuestionSwitchView questionSwitchView  = createQuestionSwitchView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionSwitchView questionSwitchView  = createQuestionSwitchView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionSwitchView);
                             requirement.addView(questionSwitchView);
                         }
                         else if(requirementChild.get("typeName").equals(numberField)){
-                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionNumberFieldView);
                             requirement.addView(questionNumberFieldView);
                         }
                         else if(requirementChild.get("typeName").equals(multipleChoice)){
                             List choices = (List)requirementChild.get("choices");
-                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionMultipleChoiceView);
                             requirement.addView(questionMultipleChoiceView);
                         }
                         else if(requirementChild.get("typeName").equals(basicTextField)){
-                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true);
+                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionBasicTextField);
                             requirement.addView(questionBasicTextField);
                         }
                         else if(requirementChild.get("typeName").equals(checkList)){
                             List choices = (List)requirementChild.get("choices");
-                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true);
+                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(requirementChild.get("typeName").toString(), requirementChild.get("name").toString(), choices, false, null, true, "");
                             FormBase.stringCardViewHashMap.put(requirementChild.get("level").toString()+"_"+requirementChild.get("order").toString(), questionCheckListView);
                             requirement.addView(questionCheckListView);
                         }
@@ -1380,7 +1418,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @SuppressWarnings("deprecation")
-    public QuestionDateFieldView createQuestionDateField(String typeName, final String questionName, boolean isRepeater, final String repeaterId, boolean isQuestionGroup){
+    public QuestionDateFieldView createQuestionDateField(String typeName, final String questionName, boolean isRepeater, final String repeaterId, boolean isQuestionGroup, final String questionGroupName){
         QuestionDateFieldView questionDateField = new QuestionDateFieldView(this);
         questionDateField.setId(DataCenter.generateViewId());
         TextView name = (TextView)questionDateField.findViewById(R.id.questionName);
@@ -1394,10 +1432,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dateTextView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    DataCenter.isQuestionGroup = false;
                     DataCenter.isDatePickRepeater = true;
                     dateId = repeaterId +questionName;
                     DataCenter.datePickRepeaterID = repeaterId+questionName;
                     Log.e("ID", DataCenter.datePickRepeaterID);
+                    showDialog(999);
+                }
+            });
+        }
+        else if(isQuestionGroup){
+            DataCenter.dateTextViewMap.put(questionGroupName+questionName, dateTextView);
+            dateTextView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    DataCenter.isQuestionGroup = true;
+                    DataCenter.isDatePickRepeater= false;
+                    dateId = questionGroupName+questionName;
                     showDialog(999);
                 }
             });
@@ -1407,6 +1458,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dateTextView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    DataCenter.isQuestionGroup = false;
                     DataCenter.isDatePickRepeater= false;
                     dateId = questionName;
                     showDialog(999);
@@ -1429,7 +1481,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return questionDateField;
     }
 
-    public QuestionNumberFieldView createQuestionNumberFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
+    public QuestionNumberFieldView createQuestionNumberFieldView(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup, String questionGroupName){
         QuestionNumberFieldView questionNumberFieldView = new QuestionNumberFieldView(this);
         questionNumberFieldView.setId(DataCenter.generateViewId());
         TextView name = (TextView)questionNumberFieldView.findViewById(R.id.questionName);
@@ -1437,12 +1489,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LinearLayout questionAnswer = (LinearLayout)questionNumberFieldView.findViewById(R.id.questionAnswer);
         EditText answer = new EditText(this);
         answer.setId(DataCenter.generateViewId());
+        answer.setHint("Type here");
         answer.setInputType(InputType.TYPE_CLASS_NUMBER);
         answer.setLines(1);
         questionAnswer.addView(answer);
         questionAnswer.setVisibility(View.VISIBLE);
         if(isRepeater){
             DataCenter.repeaterNumberTextEditText.put(repeaterId + questionName, answer);
+        }
+        else if(isQuestionGroup){
+            DataCenter.editTextMap.put(questionGroupName+questionName, answer);
         }
         else{
             DataCenter.editTextMap.put(questionName, answer);
@@ -1467,7 +1523,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return questionNumberFieldView;
     }
 
-    public QuestionBasicTextField createQuestionBasicTextField(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
+    public QuestionBasicTextField createQuestionBasicTextField(String typeName, String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup, String questionGroupName){
         QuestionBasicTextField questionBasicTextField = new QuestionBasicTextField(this);
         questionBasicTextField.setId(DataCenter.generateViewId());
         TextView name = (TextView)questionBasicTextField.findViewById(R.id.questionName);
@@ -1477,11 +1533,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         answer.setId(DataCenter.generateViewId());
         answer.setHint("Type here");
         questionAnswer.addView(answer);
-        answer.setLines(1);
         questionAnswer.setVisibility(View.VISIBLE);
         if(isRepeater){
             Log.e("Repeater Id TextField", repeaterId);
             DataCenter.repeaterBasicTextEditText.put(repeaterId +questionName, answer);
+        }
+        else if(isQuestionGroup){
+            DataCenter.editTextMap.put(questionGroupName+questionName, answer);
         }
         else{
             DataCenter.editTextMap.put(questionName, answer);
@@ -1496,7 +1554,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LinearLayout questionAnswer = (LinearLayout)questionBasicTextField.findViewById(R.id.questionAnswer);
         EditText answer = new EditText(this);
         questionAnswer.addView(answer);
-        answer.setLines(1);
         answer.setText(textFieldAnswer);
         answer.setEnabled(false);
         questionAnswer.setVisibility(View.VISIBLE);
@@ -1504,7 +1561,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return questionBasicTextField;
     }
 
-    public QuestionImageFieldView createQuestionImageFieldView(String typeName, final String questionName, final boolean isRepeater, final String repeaterId, boolean isQuestionGroup){
+    public QuestionImageFieldView createQuestionImageFieldView(String typeName, final String questionName, final boolean isRepeater, final String repeaterId, final boolean isQuestionGroup, final String questionGroupName){
         QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(this);
         TextView name = (TextView)questionImageFieldView.findViewById(R.id.questionName);
         final LinearLayout imageLayout = (LinearLayout)questionImageFieldView.findViewById(R.id.image);
@@ -1523,12 +1580,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 galleryAddPic();
                 final TextView textView = new TextView(MainActivity.this);
                 if(isRepeater){
+                    Log.e("Repeater", "isRepeater");
                     if(DataCenter.repeaterImageTextViewMap.containsKey(repeaterId+questionName)){
                         DataCenter.repeaterImageTextViewMap.remove(repeaterId+questionName);
                         DataCenter.repeaterImageTextViewMap.put(repeaterId+questionName, textView);
                     }
                     else{
                         DataCenter.repeaterImageTextViewMap.put(repeaterId+questionName, textView);
+                    }
+                }
+                else if(isQuestionGroup){
+                    if(DataCenter.imageTextViewMap.containsKey(questionGroupName+questionName)){
+                        DataCenter.imageTextViewMap.remove(questionGroupName+questionName);
+                        DataCenter.imageTextViewMap.put(questionGroupName+questionName, textView);
+                    }
+                    else{
+                        DataCenter.imageTextViewMap.put(questionGroupName+questionName, textView);
                     }
                 }
                 else{
@@ -1570,7 +1637,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return questionImageFieldView;
     }
 
-    public QuestionImageFieldView createQuestionImageFieldViewWithAnswer(String typeName, final String questionName, boolean isRepeater, String repeaterId, boolean isQuestionGroup, String answer){
+    public QuestionImageFieldView createQuestionImageFieldViewWithAnswer(String typeName, final String questionName, String answer){
         QuestionImageFieldView questionImageFieldView = new QuestionImageFieldView(this);
         TextView name = (TextView)questionImageFieldView.findViewById(R.id.questionName);
         final LinearLayout imageLayout = (LinearLayout)questionImageFieldView.findViewById(R.id.image);
@@ -1578,7 +1645,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         name.setText(questionName);
         cameraButton.setVisibility(View.GONE);
         final TextView textView = new TextView(MainActivity.this);
-        DataCenter.getImageTextViewMapPrevious.put(questionName, textView);
+//        DataCenter.getImageTextViewMapPrevious.put(questionName, textView);
+        DataCenter.imageTextViewList.add(textView);
         textView.setText(answer);
         textView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1612,7 +1680,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return questionImageFieldView;
     }
 
-    public QuestionMultipleChoiceView createQuestionMultipleChoiceView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
+    public QuestionMultipleChoiceView createQuestionMultipleChoiceView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId, boolean isQuestionGroup, String questionGroupName){
         QuestionMultipleChoiceView questionMultipleChoiceView = new QuestionMultipleChoiceView(this);
         questionMultipleChoiceView.setId(DataCenter.generateViewId());
         TextView name = (TextView) questionMultipleChoiceView.findViewById(R.id.questionName);
@@ -1624,20 +1692,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         spinner.setId(DataCenter.generateViewId());
         List<String> choiceList = new ArrayList<>();
         if(isRepeater){
+            if(choices.size() >= 10){
+                DataCenter.repeaterSpinner.put(repeaterId+questionName, spinner);
+            }
+            else{
+                DataCenter.repeaterRadioGroup.put(repeaterId + questionName, radioGroup);
+                DataCenter.radioGroupMap.put(repeaterId + questionName, radioGroup);
+            }
             Log.e("RadioGroup Id: ", ""+repeaterId);
-            DataCenter.repeaterRadioGroup.put(repeaterId + questionName, radioGroup);
-            DataCenter.repeaterSpinner.put(repeaterId+questionName, spinner);
             Log.e("RadioGroup Contains", ""+DataCenter.radioGroupMap.containsKey(repeaterId));
             Log.e("RadioGroup Map Size:", ""+DataCenter.radioGroupMap.size());
         }
+        else if(isQuestionGroup){
+            if(choices.size() >= 10){
+                DataCenter.spinnerMap.put(questionGroupName+questionName, spinner);
+            }
+            else{
+                DataCenter.radioGroupMap.put(questionGroupName+questionName, radioGroup);
+            }
+        }
         else{
-            DataCenter.radioGroupMap.put(questionName, radioGroup);
-            DataCenter.spinnerMap.put(questionName, spinner);
+            if(choices.size() >= 10){
+                DataCenter.spinnerMap.put(questionName, spinner);
+            }
+            else{
+                DataCenter.radioGroupMap.put(questionName, radioGroup);
+            }
         }
         for(int x = 0; x<choices.size(); x++){
             LinkedTreeMap<String, Object> choice = (LinkedTreeMap<String, Object>) choices.get(x);
             choiceList.add(choice.get("name").toString());
             RadioButton radioButton = new RadioButton(this);
+            radioButton.setFocusable(true);
+            radioButton.setFocusableInTouchMode(true);
             radioButton.setText(choice.get("name").toString());
             radioGroup.addView(radioButton);
         }
@@ -1670,6 +1757,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         for(int x = 0; x<choices.size(); x++){
             LinkedTreeMap<String, Object> choice = (LinkedTreeMap<String, Object>) choices.get(x);
             RadioButton radioButton = new RadioButton(this);
+            radioButton.setEnabled(false);
             radioButton.setId(x);
             radioButton.setText(choice.get("name").toString());
             choiceList.add(choice.get("name").toString());
@@ -1694,11 +1782,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.e("Radio", "Radio");
             choicesLayout.addView(radioGroup);
         }
-        radioGroup.setEnabled(false);;
         return questionMultipleChoiceView;
     }
 
-    public QuestionCheckListView createQuestionCheckListView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId, boolean isQuestionGroup){
+    public QuestionCheckListView createQuestionCheckListView(String typeName, String questionName, List choices, boolean isRepeater, String repeaterId, boolean isQuestionGroup, String questionGroupName){
         QuestionCheckListView questionCheckListView = new QuestionCheckListView(this);
         questionCheckListView.setId(DataCenter.generateViewId());
         TextView name = (TextView) questionCheckListView.findViewById(R.id.questionName);
@@ -1711,6 +1798,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.e("CheckList", (x+1)+" "+choice.get("name"));
             if(isRepeater){
                 DataCenter.repeaterCheckBox.put(choice.get("name").toString() + repeaterId + questionName, choiceCheckBox);
+            }
+            else if(isQuestionGroup){
+                DataCenter.checkBoxMap.put(questionGroupName+choice.get("name").toString()+questionName, choiceCheckBox);
             }
             else{
                 DataCenter.checkBoxMap.put(choice.get("name").toString()+questionName, choiceCheckBox);
@@ -1765,7 +1855,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void createAllQuestions(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Form fo, final String formName, final String formNameString){
         DataCenter.repeaterQuestionNameList.clear();
         DataCenter.repeaterIdList.clear();
+        DataCenter.radioGroupMap.clear();
         capture.setVisibility(View.VISIBLE);
+        capture.setVisibility(View.GONE);
         questionsLayout.removeAllViews();
         for(int i =0; i<form.getChildList().size(); i++){
             final LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
@@ -1775,6 +1867,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 final ImageView expand = (ImageView)questionGroupView.findViewById(R.id.expand);
                 final List childList = (List)map.get("childList");
                 TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
+                final String questionGroupName = map.get("name").toString();
                 questionName.setText(map.get("name").toString());
                 final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
                 questions.setId(DataCenter.generateViewId());
@@ -1815,12 +1908,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 questions.addView(questionGroupChild);
                         }
                         else if(child.get("typeName").equals(dateField)){
-                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
+                            QuestionDateFieldView questionDateFieldView = createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), false, null, true, questionGroupName);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionDateFieldView);
                             questions.addView(questionDateFieldView);
                         }
                         else if(child.get("typeName").equals(imageField)){
-                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
+                            QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null, true, questionGroupName);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionImageFieldView);
                             questions.addView(questionImageFieldView);
                         }
@@ -1831,31 +1924,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                                     questionSwitchView = createQuestionSwitchViewWithRequirement(child.get("typeName").toString(), child.get("name").toString(), false, null, true, (List) child.get("requirement_true"), (List) child.get("requirement_false"));
 //                                 }
 //                                 else{
-                                     questionSwitchView = createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
+                                     questionSwitchView = createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), false, null, true, questionGroupName);
 //                                 }
 //                             }
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionSwitchView);
                             questions.addView(questionSwitchView);
                         }
                         else if(child.get("typeName").equals(numberField)){
-                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
+                            QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), false, null, true, questionGroupName);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionNumberFieldView);
                             questions.addView(questionNumberFieldView);
                         }
                         else if(child.get("typeName").equals(multipleChoice)){
                             List choices = (List)child.get("choices");
-                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null, true);
+                            QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null, true, questionGroupName);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionMultipleChoiceView);
                             questions.addView(questionMultipleChoiceView);
                         }
                         else if(child.get("typeName").equals(basicTextField)){
-                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), false, null, true);
+                            QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), false, null, true, questionGroupName);
                             FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionBasicTextField);
                             questions.addView(questionBasicTextField);
                         }
                         else if(child.get("typeName").equals(checkList)){
                             List choices = (List)child.get("choices");
-                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null, true);
+                            QuestionCheckListView questionCheckListView = createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, false, null, true, questionGroupName);
                              FormBase.stringCardViewHashMap.put(child.get("level").toString()+"_"+child.get("order").toString(), questionCheckListView);
                             questions.addView(questionCheckListView);
                         }
@@ -1869,12 +1962,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
             else if(map.get("typeName").equals(dateField)){
-                QuestionDateFieldView questionDateFieldView = createQuestionDateField(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
+                QuestionDateFieldView questionDateFieldView = createQuestionDateField(map.get("typeName").toString(), map.get("name").toString(), false, null, false, "");
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionDateFieldView);
                 questionsLayout.addView(questionDateFieldView);
             }
             else if(map.get("typeName").equals(imageField)){
-                QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
+                QuestionImageFieldView questionImageFieldView = createQuestionImageFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false, "");
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionImageFieldView);
                 questionsLayout.addView(questionImageFieldView);
             }
@@ -1885,31 +1978,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                        questionSwitchView = createQuestionSwitchViewWithRequirement(map.get("typeName").toString(), map.get("name").toString(), false, null, true, (List) map.get("requirement_true"), (List) map.get("requirement_false"));
 //                    }
 //                    else{
-                        questionSwitchView = createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null, true);
+                        questionSwitchView = createQuestionSwitchView(map.get("typeName").toString(), map.get("name").toString(), false, null, true, "");
 //                    }
 //                }
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionSwitchView);
                 questionsLayout.addView(questionSwitchView);
             }
             else if(map.get("typeName").equals(numberField)){
-                QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
+                QuestionNumberFieldView questionNumberFieldView = createQuestionNumberFieldView(map.get("typeName").toString(), map.get("name").toString(), false, null, false, "");
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionNumberFieldView);
                 questionsLayout.addView(questionNumberFieldView);
             }
             else if(map.get("typeName").equals(multipleChoice)){
                 List choices = (List)map.get("choices");
-                QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null, false);
+                QuestionMultipleChoiceView questionMultipleChoiceView = createQuestionMultipleChoiceView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null, false, "");
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionMultipleChoiceView);
                 questionsLayout.addView(questionMultipleChoiceView);
             }
             else if(map.get("typeName").equals(basicTextField)){
-                QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(map.get("typeName").toString(), map.get("name").toString(), false, null, false);
+                QuestionBasicTextField questionBasicTextField = createQuestionBasicTextField(map.get("typeName").toString(), map.get("name").toString(), false, null, false, "");
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionBasicTextField);
                 questionsLayout.addView(questionBasicTextField);
             }
             else if(map.get("typeName").equals(checkList)){
                 List choices = (List)map.get("choices");
-                QuestionCheckListView questionCheckListView = createQuestionCheckListView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null, false);
+                QuestionCheckListView questionCheckListView = createQuestionCheckListView(map.get("typeName").toString(), map.get("name").toString(), choices, false, null, false, "");
                 FormBase.stringCardViewHashMap.put(map.get("level").toString()+"_"+map.get("order").toString(), questionCheckListView);
                 questionsLayout.addView(questionCheckListView);
 
@@ -1928,29 +2021,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 Log.e("Im in", "Now");
-
-                    Log.e("Json", json);
-                    com.dilimanlabs.formbase.objects.Form newForm = createJSONFile(json);
-                    jsonAnswer = gson.toJson(newForm);
-                    Log.e("JsonAnswer", jsonAnswer);
-                    Log.e("Form", gson.toJson(newForm));
-                    if(Answers.insertAnswer(fo, formName, jsonAnswer) && Photos.insertPhoto(formName, mCurrentPhotoPath)){
-                        Log.e("Previous", "Previous");
-                        updateButtonAfterSubmission(previousForms, formNameString);
-                        Toast.makeText(MainActivity.this, "Form saved successfully.", Toast.LENGTH_SHORT).show();
+                    if(isAllRadioButtonChecked(DataCenter.radioGroupMap)){
+                        Log.e("Json", json);
+                        com.dilimanlabs.formbase.objects.Form newForm = createJSONFile(json);
+                        jsonAnswer = gson.toJson(newForm);
+                        Log.e("JsonAnswer", jsonAnswer);
+                        Log.e("Form", gson.toJson(newForm));
+                        if(Answers.insertAnswer(fo, formName, jsonAnswer) && Photos.insertPhoto(formName, mCurrentPhotoPath)){
+                            Log.e("Previous", "Previous");
+                            updateButtonAfterSubmission(previousForms, formNameString);
+                            Toast.makeText(MainActivity.this, "Form saved successfully.", Toast.LENGTH_SHORT).show();
+                        }
+                        backView(current, FormBase.viewDeque.removeLast());
+                        capture.setVisibility(View.GONE);
                     }
-                    backView(current, FormBase.viewDeque.removeLast());
-                    capture.setVisibility(View.GONE);
+                    else{
+                        Toast.makeText(MainActivity.this, "Radiobutton cannot be empty.", Toast.LENGTH_SHORT).show();
+                    }
+
             }
         });
         Log.e("CardView Size: ", ""+FormBase.stringCardViewHashMap.size());
     }
 
 
-    public void createPreviousForm(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Answers answer, final String formNameString){
+    public void createPreviousForm(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, LinearLayout original, final String json, final Answers answer, final String formNameString, final String name){
         DataCenter.isDraft = true;
         questionsLayout.removeAllViews();
         DataCenter.getImageTextViewMapPrevious.clear();
+        DataCenter.imageTextViewList.clear();
         for(int i =0; i<form.getChildList().size(); i++){
             LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
             if(map.get("typeName").equals(questionGroup)){
@@ -1987,7 +2086,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 repeaterLayout.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(imageField)){
-                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
+                                repeaterLayout.addView(createQuestionImageFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(switchQuestion)){
                                 repeaterLayout.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
@@ -2028,7 +2127,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                         }
                         else if(c.get("typeName").equals(imageField)){
-                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
+                            questions.addView(createQuestionImageFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                         }
                         else if(c.get("typeName").equals(switchQuestion)){
                             Log.e("typeName",""+c.get("typeName").toString());
@@ -2059,7 +2158,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 questionsLayout.addView(createQuestionDateFieldWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(imageField)){
-                questionsLayout.addView(createQuestionImageFieldViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), false, null, false, map.get("answer").toString()));
+                questionsLayout.addView(createQuestionImageFieldViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(),map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(switchQuestion)){
                 questionsLayout.addView(createQuestionSwitchViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
@@ -2082,16 +2181,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
         if(answer.getState().equals("draft")){
-            Button attachment = new Button(this);
-            attachment.setText("Attachment: "+Photos.getPhotoPath(answer.local_id));
-            attachment.setBackgroundColor(context.getResources().getColor(R.color.yokohama_dark));
-            attachment.setLayoutParams(layoutParams);
             Button submit = new Button(this);
             submit.setText("Submit for Approval");
             submit.setTextColor(context.getResources().getColor(R.color.white));
             submit.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
             submit.setLayoutParams(layoutParams);
-            questionsLayout.addView(attachment);
             questionsLayout.addView(submit);
             submit.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -2102,10 +2196,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         jsonAnswer = json;
                         DataCenter.answers = answer;
                         if(isNetworkAvailable()){
-                            new SendAnswer(formNameString).execute();
+                            new SendAnswer(formNameString, name).execute();
                             Toast.makeText(MainActivity.this, "Form submitted successfully.", Toast.LENGTH_SHORT).show();
                             backView(current, FormBase.viewDeque.removeLast());
                             capture.setVisibility(View.GONE);
+                            upload.setVisibility(View.VISIBLE);
                         }
                         else{
                             Toast.makeText(MainActivity.this, "Please connect the device to the internet before submitting your answer.", Toast.LENGTH_LONG).show();
@@ -2115,25 +2210,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
 
         }else{
-            Button attachment = new Button(this);
-            attachment.setText("Attachment: "+Photos.getPhotoPath(answer.local_id));
-            attachment.setBackgroundColor(context.getResources().getColor(R.color.yokohama_dark));
-            attachment.setLayoutParams(layoutParams);
             Button submitted = new Button(this);
             submitted.setText("Submitted");
             submitted.setTextColor(context.getResources().getColor(R.color.white));
             submitted.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
             submitted.setLayoutParams(layoutParams);
             submitted.setClickable(false);
-            questionsLayout.addView(attachment);
             questionsLayout.addView(submitted);
         }
 
     }
 
-    public void createPreviousFormForApproval(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final String url, final String editing){
+    public void createPreviousFormForApproval(com.dilimanlabs.formbase.objects.Form form, final LinearLayout questionsLayout, final String url, final String editing, String status, final FormView formView){
         DataCenter.isDraft = false;
+        upload.setVisibility(View.GONE);
         questionsLayout.removeAllViews();
+        DataCenter.imageTextViewList.clear();
         for(int i =0; i<form.getChildList().size(); i++){
             LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
             if(map.get("typeName").equals(questionGroup)){
@@ -2170,7 +2262,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 repeaterLayout.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(imageField)){
-                                repeaterLayout.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
+                                repeaterLayout.addView(createQuestionImageFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                             }
                             else if(c.get("typeName").equals(switchQuestion)){
                                 repeaterLayout.addView(createQuestionSwitchViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
@@ -2211,7 +2303,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             questions.addView(createQuestionDateFieldWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                         }
                         else if(c.get("typeName").equals(imageField)){
-                            questions.addView(createQuestionImageFieldView(c.get("typeName").toString(), c.get("name").toString(), false, null, false));
+                            questions.addView(createQuestionImageFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
                         }
                         else if(c.get("typeName").equals(switchQuestion)){
                             Log.e("typeName",""+c.get("typeName").toString());
@@ -2242,7 +2334,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 questionsLayout.addView(createQuestionDateFieldWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(imageField)){
-                questionsLayout.addView(createQuestionImageFieldViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), false, null, false, map.get("answer").toString()));
+                questionsLayout.addView(createQuestionImageFieldViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(),map.get("answer").toString()));
             }
             else if(map.get("typeName").equals(switchQuestion)){
                 questionsLayout.addView(createQuestionSwitchViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString()));
@@ -2264,7 +2356,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         }
-        if(Boolean.parseBoolean(editing)){
+        if(!status.equals(DataCenter.STATUS)){
+            sendEmail.setVisibility(View.GONE);
+        }
+        if(Boolean.parseBoolean(editing) && !status.equals(DataCenter.STATUS)){
             Button approve = new Button(this);
             approve.setText("Approve");
             approve.setBackgroundColor(context.getResources().getColor(R.color.yokohama_dark));
@@ -2274,7 +2369,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 public void onClick(View v) {
                     Log.e("Clicked", "Clicked");
                     if(isNetworkAvailable()){
-                        new SendApproveAnswer(url, questionsLayout).execute();
+                        new SendApproveAnswer(url, questionsLayout, formView).execute();
+                        upload.setVisibility(View.VISIBLE);
                     }
                     else{
                         Toast.makeText(MainActivity.this, "Please connect the device to the internet to send approvals.", Toast.LENGTH_LONG).show();
@@ -2296,6 +2392,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 questionImageField.setTypeName(children.get("typeName").toString());
                 questionImageField.setName(children.get("name").toString());
                 Log.e("First", "" + children.get("level"));
+                questionImageField.setAnswer(DataCenter.imageTextViewMap.get(id).getText().toString());
                 questionImageField.setLevel(Double.parseDouble(children.get("level").toString()));
                 questionImageField.setOrder(Double.parseDouble(children.get("order").toString()));
                 questionImageField.setElName(children.get("elName").toString());
@@ -2421,7 +2518,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 questionImageField.setLevel(Double.parseDouble(children.get("level").toString()));
                 questionImageField.setOrder(Double.parseDouble(children.get("order").toString()));
                 questionImageField.setElName(children.get("elName").toString());
-                questionImageField.setAnswer(DataCenter.repeaterImageTextViewMap.get(id+children.get("name")).getText().toString());
+                if(!DataCenter.repeaterImageTextViewMap.containsKey(id+children.get("name"))){
+                    Log.e("Image answer", "No attachment");
+                    questionImageField.setAnswer("No attachment");
+                }
+                else{
+                    Log.e("Image answer", DataCenter.repeaterImageTextViewMap.get(id+children.get("name")).getText().toString());
+                    questionImageField.setAnswer(DataCenter.repeaterImageTextViewMap.get(id+children.get("name")).getText().toString());
+                }
                 questionGroupRepeaterList.add(questionImageField);
             }
             else if(children.get("typeName").equals(dateField)){
@@ -2453,7 +2557,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 questionNumberField.setLevel(Double.parseDouble(children.get("level").toString()));
                 questionNumberField.setOrder(Double.parseDouble(children.get("order").toString()));
                 questionNumberField.setElName(children.get("elName").toString());
-                questionNumberField.setRanged(Boolean.parseBoolean(children.get("ranged").toString()));
                 questionNumberField.setMinimum(Double.parseDouble(children.get("minimum").toString()));
                 questionNumberField.setMaximum(Double.parseDouble(children.get("maximum").toString()));
                 questionNumberField.setAnswer(DataCenter.repeaterNumberTextEditText.get(id+children.get("name")).getText().toString());
@@ -2571,7 +2674,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 questionNumberField.setLevel(Double.parseDouble(children.get("level").toString()));
                 questionNumberField.setOrder(Double.parseDouble(children.get("order").toString()));
                 questionNumberField.setElName(children.get("elName").toString());
-                questionNumberField.setRanged(Boolean.parseBoolean(children.get("ranged").toString()));
                 questionNumberField.setMinimum(Double.parseDouble(children.get("minimum").toString()));
                 questionNumberField.setMaximum(Double.parseDouble(children.get("maximum").toString()));
                 questionGroupRepeaterList.add(questionNumberField);
@@ -2632,7 +2734,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-    protected String sendAnswers(String form, String answer, String submission_bin)
+    protected String sendAnswers(String form, String answer, String submission_bin, String name)
     {
         HttpURLConnection connection;
         JsonAnswer ja = null;
@@ -2642,6 +2744,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         JsonAnswer json = new JsonAnswer();
         json.setAnswer(answer);
         json.setFormbase(form);
+        json.setName(name);
         Log.e("Bin", submission_bin);
         json.setSubmission_bin(submission_bin);
         String data = gson.toJson(json);
@@ -2837,32 +2940,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private class SendAnswer extends AsyncTask<String, Void, String> {
         String formNameString;
+        String name;
         ProgressDialog dialog;
 
-        public SendAnswer(String formNameString){
+        public SendAnswer(String formNameString, String name){
             this.formNameString = formNameString;
+            this.name = name;
         }
         @Override
         protected String doInBackground(String... params) {
-            String answerURL = sendAnswers(currentFormURL, jsonAnswer, FormBase.SUBMISSION_BIN);
-            String formName = Answers.getAnswerByURL(answerURL);
+            String answerURL = sendAnswers(currentFormURL, jsonAnswer, FormBase.SUBMISSION_BIN, name);
             if(!DataCenter.imageTextViewMap.isEmpty()){
-                for (Map.Entry<String, TextView> entry : DataCenter.getImageTextViewMapPrevious.entrySet())
-                {
-                    File file = new File(entry.getValue().getText().toString());
-                    String response = sendPhoto(answerURL, answerURL.split("/")[answerURL.split("/").length -1]+"_"+entry.getValue().getText().toString(), file);
+//                for (Map.Entry<String, TextView> entry : DataCenter.getImageTextViewMapPrevious.entrySet())
+//                {
+//                    File file = new File(entry.getValue().getText().toString());
+//                    String response = sendPhoto(answerURL, answerURL.split("/")[answerURL.split("/").length -1]+"_"+entry.getValue().getText().toString(), file);
+//                    Log.e("Response Photo", response);
+//                }
+                for(TextView textView : DataCenter.imageTextViewList){
+                    File file = new File(textView.getText().toString());
+                    String response = sendPhoto(answerURL, answerURL.split("/")[answerURL.split("/").length -1]+"_"+textView.getText().toString(), file);
                     Log.e("Response Photo", response);
                 }
-//                File file = new File(DataCenter.currentPath);
-//                String response = sendPhoto(answerURL, "name", file);
-//                PhotoObject photoObject = gson.fromJson(response, PhotoObject.class);
-//                Photos.updatePhoto(formName, photoObject.getUrl());
             }
             return null;
         }
 
         @Override
         protected void onPostExecute(String result) {
+            new GetAnswers(formView, formNameString).execute();
             updateButtonAfterSubmission(previousForms, formNameString);
             if (dialog.isShowing()) {
                 dialog.dismiss();
@@ -2876,7 +2982,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dialog.setMessage("Sending answer...");
             dialog.setIndeterminate(false);
             dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            dialog.setCancelable(true);
+            dialog.setCancelable(false);
             dialog.show();
         }
 
@@ -2920,16 +3026,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         public void onDateSet(DatePicker arg0, int arg1, int arg2, int arg3) {
             if(!dateId.equals("")){
+
                 if(DataCenter.isDatePickRepeater){
+                    Log.e("Date Id", dateId);
                     Log.e("Date", showDate(arg1, arg2+1, arg3));
                     Log.e("ID", DataCenter.datePickRepeaterID);
                     Log.e("DateText is in Map?", ""+DataCenter.dateTextViewMap.containsKey(DataCenter.datePickRepeaterID));
                     DataCenter.repeaterDateTextView.get(DataCenter.datePickRepeaterID).setText(showDate(arg1, arg2+1, arg3));
                 }
                 else{
+                    Log.e("Date Id", dateId);
                     DataCenter.dateTextViewMap.get(dateId).setText(showDate(arg1, arg2+1, arg3));
                 }
-
             }
         }
     };
@@ -2941,7 +3049,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     public void retrieveAllData(final LinearLayout questionsLayout, final LinearLayout innerQuestionsLayout, final LinearLayout original){
-        Log.e("Category Size", ""+Category.countTable());
+        Log.e("Category Size", "" + Category.countTable());
         loginView.setVisibility(View.GONE);
         LinearLayout layoutCategories = (LinearLayout) categoryView.findViewById(R.id.layoutCategories);
         layoutCategories.removeAllViews();
@@ -2954,7 +3062,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             categoryCardView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mDrawerToggle.setDrawerIndicatorEnabled(false);
+                    if(mDrawerToggle.isDrawerIndicatorEnabled()){
+                        mDrawerToggle.setDrawerIndicatorEnabled(false);
+                    }
                     final FormsView formsView = new FormsView(MainActivity.this);
                     LinearLayout linearLayoutForms = (LinearLayout) formsView.findViewById(R.id.layoutForms);
                     LinearLayout subcategoryForms = (LinearLayout) formsView.findViewById(R.id.subcategoryForms);
@@ -2983,23 +3093,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 formNameString = buttonForm.getText().toString();
                                 FormBase.FORM = Form.getFormByName(formNameString).getUrl().split("/")[Form.getFormByName(formNameString).getUrl().split("/").length-1];
                                 formView = (FormView) findViewById(R.id.formView);
-                                if(isNetworkAvailable()){
-                                    new GetAnswers(formView, formNameString).execute();
-                                }
-                                else{
-                                    Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
-                                }
                                 final TextView formLabel = (TextView) formView.findViewById(R.id.formLabel);
                                 formLabel.setText(formNameString);
+                                final List<Answers> answersList = Answers.getFormsByFormName(formNameString);
+                                upload = (ImageView) toolbar.findViewById(R.id.upload);
+                                upload.setVisibility(View.VISIBLE);
+                                upload.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        displayDraftAnswers(answersList, formNameString);
+                                    }
+                                });
                                 final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
-                                FloatingActionButton addButton = (FloatingActionButton) formView.findViewById(R.id.addButton);
+                                final FloatingActionButton addButton = (FloatingActionButton) formView.findViewById(R.id.addButton);
                                 TextView note = (TextView) formView.findViewById(R.id.note);
                                 addButton.setLayoutParams(layoutParams);
                                 TextView retrieveFormLabel = (TextView) formView.findViewById(R.id.retrieveFormLabel);
                                 previousForms = (LinearLayout) formView.findViewById(R.id.previousForms);
                                 previousForms.removeAllViews();
                                 previousCategory = f.getCategory();
-                                for (Answers answers : Answers.getFormsByFormName(formNameString)) {
+                                for (Answers answers : answersList) {
                                     final PreviousView previousView = new PreviousView(MainActivity.this);
                                     previousView.getName().setText(answers.getLocal_id());
                                     previousView.getState().setText(answers.getState());
@@ -3007,11 +3120,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                         @Override
                                         public void onClick(View v) {
                                             Log.e("Click", "Click");
+                                            upload.setVisibility(View.GONE);
                                             PreviousView prev = (PreviousView) v;
-                                            Answers fo = Answers.getFormByLocal_ID(prev.getName().getText().toString());
+                                            String name = prev.getName().getText().toString();
+                                            Answers fo = Answers.getFormByLocal_ID(name);
                                             com.dilimanlabs.formbase.objects.Form form = gson.fromJson(fo.getContent(), com.dilimanlabs.formbase.objects.Form.class);
                                             Log.e("Prev Content", fo.getContent());
-                                            createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString);
+                                            createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString, name);
                                             formView.setVisibility(View.GONE);
                                             FormBase.viewDeque.addLast(formView);
                                             questionsLayout.setVisibility(View.VISIBLE);
@@ -3032,6 +3147,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                                 .setView(input)
                                                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                                                     public void onClick(DialogInterface dialog, int whichButton) {
+                                                        upload.setVisibility(View.GONE);
                                                         String value = input.getText().toString();
                                                         Log.e("FormName String", formNameString);
                                                         Form fo = Form.getFormByName(formNameString);
@@ -3051,14 +3167,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 });
                                 Log.e("BIN", FormBase.BIN);
                                 if (FormBase.BIN.equals("")) {
-                                    addButton.setVisibility(View.GONE);
-                                    if (!Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())) {
-                                        note.setVisibility(View.VISIBLE);
+                                    if(!Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
+                                        final RadioGroup projectRadioGroup = new RadioGroup(MainActivity.this);
+                                        for(Projects p : Projects.getAllProjects()){
+                                            RadioButton radioButton = new RadioButton(MainActivity.this);
+                                            radioButton.setText(p.getName());
+                                            projectRadioGroup.addView(radioButton);
+                                        }
+                                        new AlertDialogWrapper.Builder(MainActivity.this)
+                                                .setCancelable(false)
+                                                .setTitle("Please select a submission bin")
+                                                .setView(projectRadioGroup)
+                                                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                                    public void onClick(DialogInterface dialog, int whichButton) {
+                                                        RadioButton radioButton = (RadioButton)projectRadioGroup.findViewById(projectRadioGroup.getCheckedRadioButtonId());
+                                                        String url = Projects.getProjectURLByName(radioButton.getText().toString());
+                                                        FormBase.BIN = url.split("/")[url.split("/").length-1];
+                                                        FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
+                                                        Log.e("URL retrieve", url);
+                                                        Log.e("Contains", ""+FormBase.buttonMap.containsKey(url));
+                                                        Button b = FormBase.buttonMap.get(url);
+                                                        b.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                                                        currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                                                        currentButton = b;
+                                                        if(isNetworkAvailable()){
+                                                            new GetAnswers(formView, formNameString).execute();
+                                                            addButton.setVisibility(View.VISIBLE);
+                                                        }
+                                                        else{
+                                                            Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                                                        }
+                                                    }
+                                                }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                            public void onClick(DialogInterface dialog, int whichButton) {
+                                                backView(current, FormBase.viewDeque.removeLast());
+                                            }
+                                        }).show();
                                     }
                                 } else if (!Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting())) {
                                     addButton.setVisibility(View.GONE);
+                                    new GetAnswers(formView, formNameString).execute();
                                 } else {
                                     addButton.setVisibility(View.VISIBLE);
+                                    new GetAnswers(formView, formNameString).execute();
                                     note.setVisibility(View.GONE);
                                     retrieveForms.setVisibility(View.GONE);
                                     retrieveFormLabel.setText("Submitted Forms");
@@ -3089,12 +3240,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             categoryCardView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mDrawerToggle.setDrawerIndicatorEnabled(false);
+                    if(mDrawerToggle.isDrawerIndicatorEnabled()){
+                        mDrawerToggle.setDrawerIndicatorEnabled(false);
+                    }
                     current = createFormsView(v, categoryCardView, formsViewContainer);
                     FormBase.viewDeque.addLast(categoryView);
                 }
             });
-            Log.e("Parent", category.getParent());
+            Log.e("Parent", "Parent"+category.getParent());
             if(category.getParent().equals("")){
                 layoutCategories.addView(categoryCardView);
             }
@@ -3120,7 +3273,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             categoryCardView1.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mDrawerToggle.setDrawerIndicatorEnabled(false);
+                    if(mDrawerToggle.isDrawerIndicatorEnabled()){
+                        mDrawerToggle.setDrawerIndicatorEnabled(false);
+                    }
                     Log.e("Instance", ""+(formsViewContainer.getChildAt(0) instanceof FormsView));
                     Log.e("Before Size", ""+FormBase.viewDeque.size());
                     FormBase.viewDeque.addLast((FormsView)formsViewContainer.getChildAt(0));
@@ -3156,15 +3311,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     FormBase.FORM = Form.getFormByName(formNameString).getUrl().split("/")[Form.getFormByName(formNameString).getUrl().split("/").length-1];
                     Log.e("Form", FormBase.FORM);
                     formView = (FormView)findViewById(R.id.formView);
+                    final List<Answers> answersList = Answers.getFormsByFormName(formNameString);
+                    upload = (ImageView) toolbar.findViewById(R.id.upload);
+                    upload.setVisibility(View.VISIBLE);
+                    upload.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            displayDraftAnswers(answersList, formNameString);
+                        }
+                    });
                     final TextView formLabel = (TextView)formView.findViewById(R.id.formLabel);
                     formLabel.setText(formNameString);
-                    if(isNetworkAvailable()){
-                        new GetAnswers(formView, formNameString).execute();
-                    }
-                    else{
-                        Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
-                    }
-
                     TextView retrieveFormLabel = (TextView)formView.findViewById(R.id.retrieveFormLabel);
                     final LinearLayout retrieveForms = (LinearLayout) formView.findViewById(R.id.retrieveForms);
                     final FloatingActionButton addButton = (FloatingActionButton) formView.findViewById(R.id.addButton);
@@ -3172,19 +3329,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     previousForms = (LinearLayout) formView.findViewById(R.id.previousForms);
                     previousForms.removeAllViews();
                     previousCategory = f.getCategory();
-                    for(Answers answers : Answers.getFormsByFormName(formNameString)){
+                    for(Answers answers : answersList){
+                        Log.e("Im in", "PreviousView");
                         final PreviousView previousView = new PreviousView(MainActivity.this);
+                        Log.e("Local Id", answers.getLocal_id());
                         previousView.getName().setText(answers.getLocal_id());
                         previousView.getState().setText(answers.getState());
                         previousView.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
                                 Log.e("Click", "Click");
+                                upload.setVisibility(View.GONE);
                                 PreviousView prev = (PreviousView)v;
-                                Answers fo = Answers.getFormByLocal_ID(prev.getName().getText().toString());
+                                String name = prev.getName().getText().toString();
+                                Answers fo = Answers.getFormByLocal_ID(name);
                                 com.dilimanlabs.formbase.objects.Form form = gson.fromJson(fo.getContent(), com.dilimanlabs.formbase.objects.Form.class);
                                 Log.e("Prev Content", fo.getContent());
-                                createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString);
+                                createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString, name);
                                 formView.setVisibility(View.GONE);
                                 FormBase.viewDeque.addLast(formView);
                                 questionsLayout.setVisibility(View.VISIBLE);
@@ -3205,6 +3366,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     .setView(input)
                                     .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int whichButton) {
+                                            upload.setVisibility(View.GONE);
                                             String value = input.getText().toString();
                                             Form fo = Form.getFormByName(formNameString);
                                             Log.e("FormName String", formNameString);
@@ -3224,12 +3386,50 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     });
                     Log.e("Starting", ""+Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting()));
                     if(FormBase.BIN.equals("")){
-                        addButton.setVisibility(View.GONE);
-                        if(!Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
-                            note.setVisibility(View.VISIBLE);
-                        }
+                            final RadioGroup projectRadioGroup = new RadioGroup(MainActivity.this);
+                            for(Projects p : Projects.getAllProjects()){
+                                RadioButton radioButton = new RadioButton(MainActivity.this);
+                                radioButton.setText(p.getName());
+                                projectRadioGroup.addView(radioButton);
+                            }
+                            new AlertDialogWrapper.Builder(MainActivity.this)
+                                    .setCancelable(false)
+                                    .setTitle("Please select a submission bin")
+                                    .setView(projectRadioGroup)
+                                    .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int whichButton) {
+                                            RadioButton radioButton = (RadioButton)projectRadioGroup.findViewById(projectRadioGroup.getCheckedRadioButtonId());
+                                            String url = Projects.getProjectURLByName(radioButton.getText().toString());
+                                            FormBase.BIN = url.split("/")[url.split("/").length-1];
+                                            FormBase.SUBMISSION_BIN = DataCenter.GLOBAL_URL+"bins/"+FormBase.BIN+"/";
+                                            Log.e("URL retrieve", url);
+                                            Log.e("Contains", ""+FormBase.buttonMap.containsKey(url));
+                                            Button b = FormBase.buttonMap.get(url);
+                                            b.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                                            currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+                                            currentButton = b;
+                                            if(isNetworkAvailable()){
+                                                new GetAnswers(formView, formNameString).execute();
+                                                if(Boolean.parseBoolean(CurrentUser.getCurrentUser().getIs_manager())){
+                                                    addButton.setVisibility(View.GONE);
+                                                }
+                                                else{
+                                                    addButton.setVisibility(View.VISIBLE);
+                                                }
+                                            }
+                                            else{
+                                                Toast.makeText(MainActivity.this, "Please connect to the internet to retrieve answers", Toast.LENGTH_SHORT).show();
+                                            }
+                                        }
+                                    }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    backView(current, FormBase.viewDeque.removeLast());
+                                }
+                            }).show();
                     }
                     else if(!Boolean.parseBoolean(Form.getFormByName(formNameString).getStarting())){
+                        Log.e("Starting", "Starting");
+                        new GetAnswers(formView, formNameString).execute();
                         addButton.setVisibility(View.GONE);
                     }
                     else{
@@ -3237,6 +3437,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         note.setVisibility(View.GONE);
                         retrieveForms.setVisibility(View.GONE);
                         retrieveFormLabel.setText("Submitted Forms");
+                        new GetAnswers(formView, formNameString).execute();
                     }
                     formsViewContainer.setVisibility(View.GONE);
                     FormBase.viewDeque.addLast(formsViewContainer);
@@ -3268,10 +3469,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void onClick(View v) {
                         Log.e("Click", "Click");
                         PreviousView prev = (PreviousView)v;
-                        Answers fo = Answers.getFormByLocal_ID(prev.getName().getText().toString());
+                        String name = prev.getName().getText().toString();
+                        Answers fo = Answers.getFormByLocal_ID(name);
                         com.dilimanlabs.formbase.objects.Form form = gson.fromJson(fo.getContent(), com.dilimanlabs.formbase.objects.Form.class);
                         Log.e("Prev Content", fo.getContent());
-                        createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString);
+                        createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString, name);
                         formView.setVisibility(View.GONE);
                         FormBase.viewDeque.addLast(formView);
                         questionsLayout.setVisibility(View.VISIBLE);
@@ -3299,10 +3501,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     public void onClick(View v) {
                         Log.e("Click", "Click");
                         PreviousView prev = (PreviousView)v;
-                        Answers fo = Answers.getFormByLocal_ID(prev.getName().getText().toString());
+                        String name = prev.getName().getText().toString();
+                        Answers fo = Answers.getFormByLocal_ID(name);
                         com.dilimanlabs.formbase.objects.Form form = gson.fromJson(fo.getContent(), com.dilimanlabs.formbase.objects.Form.class);
                         Log.e("Prev Content", fo.getContent());
-                        createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString);
+                        createPreviousForm(form, questionsLayout, innerQuestionsLayout, original, fo.getContent(), fo, formNameString, name);
                         formView.setVisibility(View.GONE);
                         FormBase.viewDeque.addLast(formView);
                         questionsLayout.setVisibility(View.VISIBLE);
@@ -3357,8 +3560,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES);
+        File storageDir = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/FormBase/Pictures");
+        if(!storageDir.exists()){
+            storageDir.mkdirs();
+        }
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
@@ -3580,28 +3785,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
             else if(child.get("typeName").equals(dateField)){
-                repeaterQuestions.addView(createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
+                repeaterQuestions.addView(createQuestionDateField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false, ""));
             }
             else if(child.get("typeName").equals(imageField)){
-                repeaterQuestions.addView(createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
+                repeaterQuestions.addView(createQuestionImageFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false, ""));
             }
             else if(child.get("typeName").equals(switchQuestion)){
-                repeaterQuestions.addView(createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
+                repeaterQuestions.addView(createQuestionSwitchView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false, ""));
             }
             else if(child.get("typeName").equals(numberField)){
-                repeaterQuestions.addView(createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
+                repeaterQuestions.addView(createQuestionNumberFieldView(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false, ""));
             }
             else if(child.get("typeName").equals(multipleChoice)){
                 Log.e("Repeater", "Multiple Choice");
                 List choices = (List)child.get("choices");
-                repeaterQuestions.addView(createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId()), false));
+                repeaterQuestions.addView(createQuestionMultipleChoiceView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId()), false, ""));
             }
             else if(child.get("typeName").equals(basicTextField)){
-                repeaterQuestions.addView(createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false));
+                repeaterQuestions.addView(createQuestionBasicTextField(child.get("typeName").toString(), child.get("name").toString(), true, String.valueOf(questions.getId()), false, ""));
             }
             else if(child.get("typeName").equals(checkList)){
                 List choices = (List)child.get("choices");
-                repeaterQuestions.addView(createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId()), false));
+                repeaterQuestions.addView(createQuestionCheckListView(child.get("typeName").toString(), child.get("name").toString(), choices, true, String.valueOf(questions.getId()), false, ""));
             }
 
 
@@ -3731,6 +3936,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         @Override
         protected String doInBackground(String... params) {
+            Log.e("Hello", "Getting answers");
             getAnswersTrue();
             getAnswersFalse();
             return null;
@@ -3741,7 +3947,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             LinearLayout retrieveForms = (LinearLayout)formView.findViewById(R.id.retrieveForms);
             retrieveForms.removeAllViews();
             for(final AnswersForApproval answersForApproval : AnswersForApproval.getAllAnswersForApproval()){
-                AnswersView answersView = new AnswersView(MainActivity.this);
+                final AnswersView answersView = new AnswersView(MainActivity.this);
+                answersView.getName().setText(answersForApproval.getName());
                 answersView.getSubmitted_by().setText(answersForApproval.getCreated_by());
                 answersView.getState().setText(answersForApproval.getState());
                 String date = answersForApproval.getDate_created();
@@ -3750,6 +3957,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     @Override
                     public void onClick(View v) {
                         AnswersView a = (AnswersView) v;
+                        String status = answersForApproval.getState().split("\\d")[answersForApproval.getState().split("\\d").length -1].trim();
+                        Log.e("status", status);
                         final AnswersForApproval afa = AnswersForApproval.getAnswersForApprovalByCreatedBy(a.getSubmitted_by().getText().toString(), a.getDate().getText().toString());
                         Log.e("Prev Content", afa.getAnswer());
                         Log.e("URL", afa.getUrl());
@@ -3758,10 +3967,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         download.setVisibility(View.VISIBLE);
                         sendEmail.setVisibility(View.VISIBLE);
                         com.dilimanlabs.formbase.objects.Form form = gson.fromJson(afa.getAnswer(), com.dilimanlabs.formbase.objects.Form.class);
-                        createPreviousFormForApproval(form, questionsLayout, afa.getUrl(), afa.getEditing());
+                        createPreviousFormForApproval(form, questionsLayout, afa.getUrl(), afa.getEditing(), status, formView);
                         formView.setVisibility(View.GONE);
                         FormBase.viewDeque.addLast(formView);
                         questionsLayout.setVisibility(View.VISIBLE);
+                        Log.e("Visibility", ""+questionsLayout.getVisibility());
                         current = questionsLayout;
                     }
                 });
@@ -3782,7 +3992,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dialog.setMessage("Retrieving data...");
             dialog.setIndeterminate(false);
             dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            dialog.setCancelable(true);
+            dialog.setCancelable(false);
             dialog.show();
         }
 
@@ -3856,10 +4066,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private class SendApproveAnswer extends AsyncTask<String, Void, String> {
         String url;
         LinearLayout current;
+        FormView formView;
+        ProgressDialog dialog;
 
-        private SendApproveAnswer(String url, LinearLayout current) {
+        private SendApproveAnswer(String url, LinearLayout current, FormView formView) {
             this.url = url;
             this.current = current;
+            this.formView = formView;
         }
 
         @Override
@@ -3872,13 +4085,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         @Override
         protected void onPostExecute(String result) {
-
             backView(current, FormBase.viewDeque.removeLast());
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+            }
         }
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            dialog = new ProgressDialog(MainActivity.this);
+            dialog.setMessage("Sending answer...");
+            dialog.setIndeterminate(false);
+            dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            dialog.setCancelable(false);
+            dialog.show();
         }
 
         @Override
@@ -3893,12 +4114,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             final Button allProjects = new Button(this);
             if(p.getName().equals("All")){
                 allProjects.setText(p.getName());
-                allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+                allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                 allProjects.setLayoutParams(layoutParams);
                 allProjects.setTextColor(context.getResources().getColor(R.color.white));
                 allProjects.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        if(null != upload){
+                            upload.setVisibility(View.GONE);
+                        }
                         mDrawerToggle.setDrawerIndicatorEnabled(true);
                         download.setVisibility(View.GONE);
                         sendEmail.setVisibility(View.GONE);
@@ -3927,21 +4151,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             else{
                 Button button = new Button(this);
                 FormBase.buttonStringMap.put(button, p.getUrl());
+                Log.e("URL", p.getUrl());
+                FormBase.buttonMap.put(p.getUrl(), button);
                 FormBase.buttonList.add(button);
                 button.setLayoutParams(layoutParams);
                 button.setText(p.getName());
                 button.setTextColor(context.getResources().getColor(R.color.white));
-                if(p.getName().equals(FormBase.currentButtonText)){
-                    button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
-                    allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-                    currentButton = button;
-                }
-                else{
-                    button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
-                }
+//                if(p.getName().equals(FormBase.currentButtonText)){
+//                    Log.e("Equals", "Equals");
+//                    button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
+//                    allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+//                    currentButton = button;
+//                }
+//                else{
+//                    button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
+//                }
+                button.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        if(null != upload){
+                            upload.setVisibility(View.GONE);
+                        }
                         mDrawerToggle.setDrawerIndicatorEnabled(true);
                         download.setVisibility(View.GONE);
                         sendEmail.setVisibility(View.GONE);
@@ -3953,11 +4184,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         backToCategoryView();
                         Log.e("URL is", FormBase.BIN);
                         if(!currentButton.equals(b)){
+                            Log.e("Not Equal", "Not Equal");
                             b.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black_lighter));
                             currentButton.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                         }
                         currentButton = b;
-                        allProjects.setBackgroundColor(context.getResources().getColor(R.color.yokohama_black));
                         if(formView != null && formView.getVisibility() != View.GONE){
                             Log.e("Project", "Getting answer");
                             if(isNetworkAvailable()){
@@ -3997,9 +4228,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             URLConnection urlConnection = u.openConnection();
             String [] content = urlConnection.getHeaderField("Content-Disposition").split("=");
             String fileName = content[content.length-1];
+            Log.e("filename", fileName);
             StringBuilder sb = new StringBuilder(fileName);
-            sb.deleteCharAt(0);
-            sb.deleteCharAt(sb.length()-1);
             String name = sb.toString();
             Log.e("Name", name);
             u.getFile();
@@ -4008,7 +4238,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.e("dis", dis.toString());
             byte[] buffer = new byte[4096];
             int length;
-            FileOutputStream fos = new FileOutputStream(new File(Environment.getExternalStorageDirectory() +"/FormBase/"  + name));
+            File directory = new File(Environment.getExternalStorageDirectory() +"/FormBase/Documents");
+            if(!directory.exists()){
+                directory.mkdirs();
+            }
+            FileOutputStream fos = new FileOutputStream(new File(Environment.getExternalStorageDirectory() +"/FormBase/Documents/"  + name));
             while ((length = dis.read(buffer))>0) {
                 fos.write(buffer, 0, length);
             }
@@ -4050,7 +4284,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dialog.setMessage("Downloading data...");
             dialog.setIndeterminate(false);
             dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            dialog.setCancelable(true);
+            dialog.setCancelable(false);
             dialog.show();
         }
 
@@ -4117,7 +4351,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             request.write(data);
             request.flush();
             request.close();
-            Log.e("request code",""+ connection.getResponseCode());
+            Log.e("request code", "" + connection.getResponseCode());
             String line = "";
             if(connection.getResponseCode() == 400){
                 inputStream = connection.getErrorStream();
@@ -4174,7 +4408,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         catch(IOException e)
         {
-            Toast.makeText(MainActivity.this, "Email sumbission failed please check your network connection", Toast.LENGTH_LONG).show();
             e.printStackTrace();
             Log.e("Error", e.toString());
 
@@ -4218,7 +4451,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             dialog.setMessage("Sending email...");
             dialog.setIndeterminate(false);
             dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            dialog.setCancelable(true);
+            dialog.setCancelable(false);
             dialog.show();
         }
 
@@ -4237,6 +4470,279 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
         return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+    }
+
+    public void displayDraftAnswers(List<Answers> answersList, final String formNameString){
+        LinearLayout linearLayout = new LinearLayout(MainActivity.this);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        linearLayout.setLayoutParams(layoutParams);
+        linearLayout.removeAllViews();
+        CheckBox selectAll = new CheckBox(MainActivity.this);
+        selectAll.setText("Select All");
+        linearLayout.addView(selectAll);
+        final Map<String, CheckBox> stringCheckBoxMap = new HashMap<>();
+        Log.e("Size", ""+answersList.size());
+        for(Answers answers : answersList){
+            CheckBox checkBox = new CheckBox(MainActivity.this);
+            checkBox.setText(answers.getLocal_id());
+            stringCheckBoxMap.put(answers.getLocal_id(), checkBox);
+            linearLayout.addView(checkBox);
+        }
+        selectAll.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+                    checkAllForms(stringCheckBoxMap);
+                }
+                else{
+                    unCheckAllForms(stringCheckBoxMap);
+                }
+            }
+        });
+        new AlertDialogWrapper.Builder(MainActivity.this)
+                .setTitle("Select forms to be submitted")
+                .setView(linearLayout)
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        if(isNetworkAvailable()){
+                            new SendMultipleAnswer(formNameString, stringCheckBoxMap).execute();
+                        }
+                        else{
+                            Toast.makeText(MainActivity.this, "Please connect the device to the internet before submitting answers.", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Do nothing.
+            }
+        }).show();
+    }
+
+    public void checkAllForms(Map<String, CheckBox> stringCheckBoxMap){
+         for (Map.Entry<String, CheckBox> entry : stringCheckBoxMap.entrySet())
+                {
+                    entry.getValue().setChecked(true);
+                }
+    }
+
+    public void unCheckAllForms(Map<String, CheckBox> stringCheckBoxMap){
+        for (Map.Entry<String, CheckBox> entry : stringCheckBoxMap.entrySet())
+        {
+            entry.getValue().setChecked(false);
+        }
+    }
+
+    protected String sendMultipleAnswers(String form, String answer, String submission_bin, String name, Answers answers)
+    {
+        HttpURLConnection connection;
+        JsonAnswer ja = null;
+        InputStream inputStream;
+        InputStreamReader isr;
+        OutputStreamWriter request = null;
+        JsonAnswer json = new JsonAnswer();
+        json.setAnswer(answer);
+        json.setFormbase(form);
+        json.setName(name);
+        Log.e("Bin", submission_bin);
+        json.setSubmission_bin(submission_bin);
+        String data = gson.toJson(json);
+        Log.e("Json: ", data);
+        URL url = null;
+        String response = null;
+
+        try
+        {
+            url = new URL(DataCenter.GLOBAL_URL+"answers/");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Authorization", "Token " +accountManager.peekAuthToken(accounts[0], AccountGeneral.AUTHTOKEN_TYPE_FULL_ACCESS));
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestMethod("POST");
+            request = new OutputStreamWriter(connection.getOutputStream());
+            request.write(data);
+            request.flush();
+            request.close();
+            Log.e("request code",""+ connection.getResponseCode());
+            String line = "";
+            if(connection.getResponseCode() == 400){
+                inputStream = connection.getErrorStream();
+                isr = new InputStreamReader(inputStream);
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                response = sb.toString();
+                Log.e("Response: ", response);
+                isr.close();
+                reader.close();
+                connection.disconnect();
+            }
+            else if(connection.getResponseCode() == 500){
+                inputStream = connection.getErrorStream();
+                isr = new InputStreamReader(inputStream);
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                response = sb.toString();
+                Log.e("Response: ", response);
+                isr.close();
+                reader.close();
+                connection.disconnect();
+            }
+            else{
+                inputStream = connection.getInputStream();
+                isr = new InputStreamReader(inputStream);
+                BufferedReader reader = new BufferedReader(isr);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                response = sb.toString();
+                ja = gson.fromJson(response, JsonAnswer.class);
+                Answers.updateAnswer(answers, answer, ja.getUrl());
+                Log.e("Response: ", response);
+                isr.close();
+                reader.close();
+                connection.disconnect();
+            }
+
+        }
+        catch(MalformedURLException m){
+            Log.e("Malformed", m.getMessage());
+        }
+        catch(IOException e)
+        {
+            Toast.makeText(MainActivity.this, "Answer sumbission failed please check your network connection", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+            Log.e("Error", e.toString());
+
+        }
+        if(ja == null){
+            return "";
+        } else{
+            return ja.getUrl();
+        }
+
+    }
+
+    private class SendMultipleAnswer extends AsyncTask<String, Void, String> {
+        String formNameString;
+        Map<String, CheckBox> checkBoxMap;
+        ProgressDialog dialog;
+
+        public SendMultipleAnswer(String formNameString, Map<String, CheckBox> checkBoxMap){
+            this.formNameString = formNameString;
+            this.checkBoxMap = checkBoxMap;
+        }
+        @Override
+        protected String doInBackground(String... params) {
+            for (Map.Entry<String, CheckBox> entry : checkBoxMap.entrySet()) {
+                if (entry.getValue().isChecked()) {
+                    Answers answers = Answers.getFormByLocalId(entry.getKey());
+                    com.dilimanlabs.formbase.objects.Form form = gson.fromJson(answers.getContent(), com.dilimanlabs.formbase.objects.Form.class);
+                    insertPhotos(form);
+                    String answerURL = sendMultipleAnswers(currentFormURL, answers.getContent(), FormBase.SUBMISSION_BIN, entry.getKey(), answers);
+                    if(!DataCenter.imageTextViewMap.isEmpty()){
+                        for(TextView textView : DataCenter.imageTextViewList){
+                            File file = new File(textView.getText().toString());
+                            String response = sendPhoto(answerURL, answerURL.split("/")[answerURL.split("/").length -1]+"_"+textView.getText().toString(), file);
+                            Log.e("Response Photo", response);
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            new GetAnswers(formView, formNameString).execute();
+            updateButtonAfterSubmission(previousForms, formNameString);
+            if (dialog.isShowing()) {
+                dialog.dismiss();
+            }
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog = new ProgressDialog(MainActivity.this);
+            dialog.setMessage("Sending answer...");
+            dialog.setIndeterminate(false);
+            dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            dialog.setCancelable(false);
+            dialog.show();
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+        }
+    }
+
+    public void insertPhotos(com.dilimanlabs.formbase.objects.Form form){
+        DataCenter.getImageTextViewMapPrevious.clear();
+        DataCenter.imageTextViewList.clear();
+        for(int i =0; i<form.getChildList().size(); i++){
+            LinkedTreeMap<String, Object> map = (LinkedTreeMap<String, Object>) form.getChildList().get(i);
+            if(map.get("typeName").equals(questionGroup)){
+                questionGroupView = new QuestionGroupView(this);
+                final TextView questionName = (TextView)questionGroupView.findViewById(R.id.questionName);
+                final LinearLayout questions = (LinearLayout)questionGroupView.findViewById(R.id.questions);
+                ImageView expand = (ImageView) questionGroupView.findViewById(R.id.expand);
+                expand.setVisibility(View.GONE);
+                if(Boolean.parseBoolean(map.get("isRepeating").toString()) == true){
+                    questions.setVisibility(View.VISIBLE);
+                    questionName.setText(map.get("name").toString());
+                    Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
+                    Log.e("Name: ", " "+map.get("name"));
+                    List childList = (List)map.get("questionRepeaterList");
+                    for(int x = 0; x<childList.size(); x++){
+                        final LinkedTreeMap<String, Object> child = (LinkedTreeMap<String, Object>) childList.get(x);
+                        List children = (List)child.get("repeaterQuestion");
+                        Log.e("Repeater Question", child.get("repeaterQuestion").toString());
+                        LinearLayout.LayoutParams linearLayoutParams = new LinearLayout.LayoutParams((LinearLayout.LayoutParams.MATCH_PARENT),(LinearLayout.LayoutParams.WRAP_CONTENT));
+                        LinearLayout repeaterLayout = new LinearLayout(MainActivity.this);
+                        repeaterLayout.setOrientation(LinearLayout.VERTICAL);
+                        repeaterLayout.setLayoutParams(linearLayoutParams);
+                        for(int y = 0; y<children.size(); y++){
+                            final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) children.get(y);
+                            if(c.get("typeName").equals(imageField)){
+                                repeaterLayout.addView(createQuestionImageFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                            }
+                        }
+                        questions.addView(repeaterLayout);
+                    }
+                }
+                else{
+                    questions.setVisibility(View.VISIBLE);
+                    questionName.setText(map.get("name").toString());
+                    Log.e("Question Type: ", (i + 1) + " " + map.get("typeName"));
+                    Log.e("Name: ", " "+map.get("name"));
+                    List childList = (List)map.get("childList");
+                    for(int y = 0; y<childList.size(); y++){
+                        final LinkedTreeMap<String, Object> c = (LinkedTreeMap<String, Object>) childList.get(y);
+                        if(c.get("typeName").equals(imageField)){
+                            questions.addView(createQuestionImageFieldViewWithAnswer(c.get("typeName").toString(), c.get("name").toString(), c.get("answer").toString()));
+                        }
+                    }
+                }
+            }
+
+            else if(map.get("typeName").equals(imageField)){
+                createQuestionImageFieldViewWithAnswer(map.get("typeName").toString(), map.get("name").toString(), map.get("answer").toString());
+            }
+        }
     }
 
 }

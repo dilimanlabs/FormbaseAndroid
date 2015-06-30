@@ -10,6 +10,7 @@ public class JsonAnswer {
     String date_modified;
     String answer;
     String state;
+    String name;
     String created_by;
     String formbase;
     String modified_by;
@@ -104,5 +105,13 @@ public class JsonAnswer {
 
     public void setSubmission_bin(String submission_bin) {
         this.submission_bin = submission_bin;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

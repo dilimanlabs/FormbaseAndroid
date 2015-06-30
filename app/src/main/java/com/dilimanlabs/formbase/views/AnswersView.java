@@ -15,6 +15,7 @@ public class AnswersView extends CardView {
     private TextView submitted_by;
     private TextView state;
     private TextView date;
+    private TextView name;
 
     public AnswersView(Context context) {
         super(context);
@@ -36,6 +37,7 @@ public class AnswersView extends CardView {
         submitted_by = (TextView) findViewById(R.id.submitted_by);
         state = (TextView) findViewById(R.id.state);
         date = (TextView) findViewById(R.id.date);
+        name = (TextView) findViewById(R.id.name);
     }
 
     public TextView getSubmitted_by() {
@@ -48,5 +50,9 @@ public class AnswersView extends CardView {
 
     public TextView getDate() {
         return date;
+    }
+
+    public TextView getName() {
+        return name;
     }
 }

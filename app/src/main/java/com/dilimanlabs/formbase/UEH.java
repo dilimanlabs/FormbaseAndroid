@@ -1,6 +1,7 @@
 package com.dilimanlabs.formbase;
 
 import android.os.Environment;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -42,6 +43,12 @@ public class UEH {
     }
 
     public static void logError(String error){
+        //Also print into logcat
+
+        Log.e("error",error);
+
+
+
         String complete_dir= Environment.getExternalStorageDirectory().getAbsolutePath()+"/FormBase/";
         File dir = new File(complete_dir);
         if(!dir.exists())

@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.widget.Toast;
 
 /**
  * Created by user on 4/23/2015.
@@ -37,7 +36,7 @@ public class FormbaseAuthenticator extends AbstractAccountAuthenticator {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(mContext, "Only one account allowed", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(mContext, "Only one account allowed", Toast.LENGTH_SHORT).show();
                 }
             });
 

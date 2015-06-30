@@ -60,6 +60,11 @@ public class Projects extends Model {
         return projectsList;
     }
 
+    public static String getProjectURLByName(String name){
+        Projects projects =  new Select().from(Projects.class).where("Name = ?", name).executeSingle();
+        return projects.getUrl();
+    }
+
     public static int countTable(){
         int size = new Select().from(Projects.class).execute().size();
         ActiveAndroid.getDatabase().close();

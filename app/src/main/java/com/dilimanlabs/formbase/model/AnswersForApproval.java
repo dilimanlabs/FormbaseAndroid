@@ -35,6 +35,8 @@ public class AnswersForApproval extends Model {
     String fulfilled;
     @Column(name="Editing")
     String editing;
+    @Column(name="Name")
+    String name;
 
     public String getUrl() {
         return url;
@@ -116,6 +118,14 @@ public class AnswersForApproval extends Model {
         this.editing = editing;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public static void insertData(List<JsonAnswer> jsonAnswerList, String editing){
         for(JsonAnswer jsonAnswer : jsonAnswerList){
             AnswersForApproval answersForApproval = new AnswersForApproval();
@@ -129,6 +139,7 @@ public class AnswersForApproval extends Model {
             answersForApproval.setFulfilled(jsonAnswer.getFulfilled());
             answersForApproval.setModified_by(jsonAnswer.getModified_by());
             answersForApproval.setEditing(editing);
+            answersForApproval.setName(jsonAnswer.getName());
             answersForApproval.save();
         }
         ActiveAndroid.getDatabase().close();

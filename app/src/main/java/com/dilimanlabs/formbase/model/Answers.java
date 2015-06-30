@@ -173,6 +173,11 @@ public class Answers extends Model {
         return answersList;
     }
 
+    public static Answers getFormByLocalId(String local_id){
+        return new Select().from(Answers.class).where("Local_ID = ?", local_id).executeSingle();
+    }
+
+
     public static void deleteData(){
         new Delete().from(Answers.class).execute();
         ActiveAndroid.getDatabase().close();
