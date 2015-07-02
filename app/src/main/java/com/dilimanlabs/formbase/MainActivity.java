@@ -2012,7 +2012,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
         Button submit = new Button(this);
-        submit.setText("Save as Draft");
+        submit.setText("Save");
         submit.setTextColor(context.getResources().getColor(R.color.white));
         submit.setBackgroundColor(context.getResources().getColor(R.color.yokohama_red));
         submit.setLayoutParams(layoutParams);
